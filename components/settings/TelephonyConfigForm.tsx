@@ -19,6 +19,7 @@ const telephonyConfigSchema = z.object({
         password: z.string().optional(),
         sipUsername: z.string().optional(),
         sipPassword: z.string().optional(),
+        webrtcToken: z.string().optional(),
     }),
     isActive: z.boolean()
 });
@@ -92,6 +93,7 @@ export const TelephonyConfigForm: React.FC = () => {
                 password: '',
                 sipUsername: '',
                 sipPassword: '',
+                webrtcToken: '',
             },
             isActive: false
         }
@@ -356,6 +358,28 @@ export const TelephonyConfigForm: React.FC = () => {
                                         placeholder="הסיסמה משדה 'סיסמת SIP' ב-CPanel"
                                         dir="ltr"
                                         className="w-full bg-white border border-gray-300 rounded-xl px-4 py-3 text-sm text-gray-900 font-mono outline-none focus:ring-2 focus:ring-rose-300 focus:border-rose-400"
+                                    />
+                                </div>
+
+                                <hr className="border-slate-200 my-4" />
+
+                                <p className="text-[11px] text-slate-500 font-bold uppercase">
+                                    🌐 WebRTC Token (Softphone)
+                                </p>
+                                <p className="text-[11px] text-gray-400">
+                                    JWT Token לחיוג ישיר מהדפדפן — מקבלים מ-Voicenter
+                                </p>
+
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-900 mb-1.5">
+                                        WebRTC Token
+                                    </label>
+                                    <textarea
+                                        {...register('credentials.webrtcToken')}
+                                        placeholder="eyJhbGciOiJSUzI1NiIs... (JWT Token ל-WebRTC)"
+                                        dir="ltr"
+                                        rows={3}
+                                        className="w-full bg-white border border-gray-300 rounded-xl px-4 py-3 text-xs text-gray-900 font-mono outline-none focus:ring-2 focus:ring-rose-300 focus:border-rose-400 resize-none"
                                     />
                                 </div>
                             </div>

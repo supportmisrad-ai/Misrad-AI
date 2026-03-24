@@ -5,6 +5,7 @@ import { enforceModuleAccessOrRedirect, persistCurrentUserLastLocation } from '@
 import { getSystemMetadata } from '@/lib/metadata';
 import { UnifiedLoadingShell } from '@/components/shared/UnifiedLoadingShell';
 import NexusLayoutShell from './NexusLayoutShell';
+import { WorkspaceSessionSaver } from '@/components/shared/WorkspaceSessionSaver';
 
 // Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
@@ -12,10 +13,19 @@ export const metadata: Metadata = getSystemMetadata('nexus');
 
 // Async component for access check - wrapped in Suspense
 async function AccessCheck({ orgSlug, children }: { orgSlug: string; children: React.ReactNode }) {
-  await enforceModuleAccessOrRedirect({ orgSlug, module: 'nexus' });
+  const workspace = await enforceModuleAccessOrRedirect({ orgSlug, module: 'nexus' });
   // Fire-and-forget: don't block render for location tracking
   persistCurrentUserLastLocation({ orgSlug, module: 'nexus' }).catch(() => undefined);
-  return <>{children}</>;
+  return (
+    <>
+      <WorkspaceSessionSaver
+        orgSlug={orgSlug}
+        moduleKey="nexus"
+        entitlements={workspace.entitlements as Record<string, boolean>}
+      />
+      {children}
+    </>
+  );
 }
 
 export default async function NexusModuleLayout({

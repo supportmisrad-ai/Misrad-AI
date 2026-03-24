@@ -31,9 +31,33 @@ const config: CapacitorConfig = {
   server: {
     url: PRODUCTION_URL,
     cleartext: false,
+    // Allow navigation within misrad-ai.com subdomain (clerk, cdn, etc.)
+    allowNavigation: ['*.misrad-ai.com', '*.clerk.com', '*.clerk.dev', '*.clerk.accounts.dev'],
+    // Use https scheme so cookies (Clerk session) are treated as secure-origin cookies
+    // and persist correctly across WebView sessions without re-auth on every open.
+    androidScheme: 'https',
+    iosScheme: 'https',
+    // Stable hostname so the WebView uses a consistent origin for cookie storage.
+    // Without this, Android WebView may generate a random origin per session,
+    // causing Clerk to not recognize the stored session token → forced re-login.
+    hostname: 'app.misrad-ai.com',
   },
   android: {
     allowMixedContent: false,
+    // Show white background immediately (matches app bg) to avoid flash
+    backgroundColor: '#F8FAFC',
+    // Capture WebView back-button to prevent accidental app exit mid-flow
+    captureInput: true,
+  },
+  plugins: {
+    SplashScreen: {
+      launchShowDuration: 0,
+      backgroundColor: '#F8FAFC',
+      showSpinner: false,
+      androidSpinnerStyle: 'small',
+      splashFullScreen: false,
+      splashImmersive: false,
+    },
   },
 };
 

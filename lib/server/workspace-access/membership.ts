@@ -1,6 +1,6 @@
 import 'server-only';
 
-import prisma from '@/lib/prisma';
+import prisma, { accelerateCache } from '@/lib/prisma';
 import { getErrorMessage, logWorkspaceAccessError, redactId } from './utils';
 import type { OrganizationRow, SocialUserRow } from './types';
 
@@ -18,6 +18,7 @@ async function hasTeamMembership({
         organization_id: organizationId,
       },
       select: { id: true },
+      ...accelerateCache({ ttl: 30, swr: 60 }),
     });
     return Boolean(data?.id);
   } catch (error: unknown) {

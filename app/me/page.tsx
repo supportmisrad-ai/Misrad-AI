@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import prisma from '@/lib/prisma';
+import prisma, { accelerateCache } from '@/lib/prisma';
 import { getCurrentUserId } from '@/lib/server/authHelper';
 import { loadCurrentUserLastLocation } from '@/lib/server/workspace';
 
@@ -35,6 +35,7 @@ async function resolveRedirectWorkspaceSlugForCurrentUser(): Promise<{ slug: str
         withPrismaTenantIsolationOverride({
           where: { clerk_user_id: clerkUserId },
           select: { id: true, organization_id: true },
+          ...accelerateCache({ ttl: 30, swr: 60 }),
         }, { suppressReporting: true, reason: 'me_page_lookup_social_user_by_clerk_user_id', source: 'me-page-redirect' })
       );
 
@@ -49,12 +50,14 @@ async function resolveRedirectWorkspaceSlugForCurrentUser(): Promise<{ slug: str
           withPrismaTenantIsolationOverride({
             where: { owner_id: String(socialUser.id) },
             select: { id: true },
+            ...accelerateCache({ ttl: 30, swr: 60 }),
           }, { suppressReporting: true, reason: 'me_page_lookup_owned_orgs_by_social_user_id', source: 'me-page-redirect' })
         ),
         prisma.teamMember.findMany(
           withPrismaTenantIsolationOverride({
             where: { user_id: String(socialUser.id) },
             select: { organization_id: true },
+            ...accelerateCache({ ttl: 30, swr: 60 }),
           }, { suppressReporting: true, reason: 'me_page_lookup_team_memberships_by_social_user_id', source: 'me-page-redirect' })
         ),
         loadCurrentUserLastLocation(),
@@ -82,6 +85,7 @@ async function resolveRedirectWorkspaceSlugForCurrentUser(): Promise<{ slug: str
         withPrismaTenantIsolationOverride({
           where: { id: { in: ids } },
           select: { id: true, slug: true, subscription_plan: true, subscription_status: true },
+          ...accelerateCache({ ttl: 30, swr: 60 }),
         }, { suppressReporting: true, reason: 'me_page_lookup_org_details_by_ids', source: 'me-page-redirect' })
       );
 
@@ -127,22 +131,19 @@ export default async function MePage({
   }
 
   let resolved: { slug: string; hasPlan: boolean; isExpired?: boolean } | null = null;
-  let retryCount = 0;
-  const MAX_RETRIES = 2;
-  
-  while (!resolved && retryCount < MAX_RETRIES) {
+
+  try {
+    resolved = await resolveRedirectWorkspaceSlugForCurrentUser();
+  } catch (error) {
+    console.error('[MePage] Failed to resolve redirect workspace:', error);
+    // Single fast retry — no sleep, avoids adding 500ms on cold starts
     try {
       resolved = await resolveRedirectWorkspaceSlugForCurrentUser();
-    } catch (error) {
-      console.error(`[MePage] Attempt ${retryCount + 1} failed to resolve redirect workspace:`, error);
-      if (retryCount < MAX_RETRIES - 1) {
-        // Wait a bit before retry - gives time for webhook/user creation to complete
-        await new Promise(resolve => setTimeout(resolve, 500));
-      }
+    } catch (retryError) {
+      console.error('[MePage] Retry also failed:', retryError);
     }
-    retryCount++;
   }
-  
+
   if (!resolved) {
     console.error('[MePage] All attempts failed to resolve workspace');
   }
@@ -158,18 +159,27 @@ export default async function MePage({
       redirect('/workspaces/onboarding');
     }
 
-    // Preserve query parameters when redirecting
+    // Handle redirect param: if a specific path was requested (e.g. from LoginPageClient),
+    // route to that path within the resolved workspace. Otherwise go to workspace root.
     const sp = searchParams ? await Promise.resolve(searchParams) : {};
-    const queryString = new URLSearchParams();
-    for (const [key, value] of Object.entries(sp)) {
-      if (value) {
-        const val = Array.isArray(value) ? value[0] : value;
-        if (val) queryString.set(key, String(val));
+    const redirectParam = sp.redirect ? String(Array.isArray(sp.redirect) ? sp.redirect[0] : sp.redirect) : null;
+
+    if (
+      redirectParam &&
+      redirectParam.startsWith('/') &&
+      !redirectParam.startsWith('//') &&
+      !redirectParam.startsWith('/login') &&
+      !redirectParam.startsWith('/me')
+    ) {
+      // If redirect path already contains a workspace segment, use it directly
+      if (redirectParam.startsWith('/w/')) {
+        redirect(redirectParam);
       }
+      // Otherwise anchor it to the resolved workspace
+      redirect(`/w/${encodeURIComponent(resolved.slug)}${redirectParam}`);
     }
-    const qs = queryString.toString();
-    const targetUrl = qs ? `/w/${encodeURIComponent(resolved.slug)}?${qs}` : `/w/${encodeURIComponent(resolved.slug)}`;
-    redirect(targetUrl);
+
+    redirect(`/w/${encodeURIComponent(resolved.slug)}`);
   }
 
   // No workspace found -> go to workspaces page

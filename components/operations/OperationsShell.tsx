@@ -285,7 +285,7 @@ export default function OperationsShell({
           onOpenSupportAction={() => {}}
           actionsSlot={<ModuleHelpVideos moduleKey="operations" />}
           switcherSlot={<WorkspaceSwitcher />}
-          notificationsSlot={null}
+          notificationsSlot={<UnifiedNotificationsBell />}
           user={{ name: resolvedUser.name, role: resolvedUser.role }}
           profileHref={`${basePath}/me`}
           userAvatarSlot={avatarSlot}

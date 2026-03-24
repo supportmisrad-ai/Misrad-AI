@@ -22,6 +22,25 @@ function verifyWebhookSignature(body: string, signature: string | null): boolean
 }
 
 /**
+ * Resolve org slug OR uuid → actual UUID.
+ * orgId from webhook can be a slug like "misrad-ai-hq" or a real UUID.
+ * SystemLead.organizationId is @db.Uuid — passing a slug causes a Prisma error.
+ */
+async function resolveOrgId(orgId: string): Promise<string | null> {
+    // Already a UUID format — try direct lookup first
+    const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (uuidPattern.test(orgId)) {
+        return orgId;
+    }
+    // It's a slug — resolve to UUID
+    const org = await prisma.organization.findUnique({
+        where: { slug: orgId },
+        select: { id: true },
+    });
+    return org?.id ?? null;
+}
+
+/**
  * Webhook Endpoint for Voicenter Integration
  * POST /api/webhooks/voicenter
  * 
@@ -35,8 +54,8 @@ export async function POST(request: NextRequest) {
         const signature = request.headers.get('x-voicenter-signature') || 
                          request.headers.get('x-webhook-signature');
         
-        // Verify webhook signature in production
-        if (IS_PROD && !verifyWebhookSignature(bodyText, signature)) {
+        // Verify webhook signature in production (skip if no secret configured)
+        if (IS_PROD && VOICENTER_WEBHOOK_SECRET && !verifyWebhookSignature(bodyText, signature)) {
             return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
         }
 
@@ -58,22 +77,25 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: true, message: 'Webhook active (test received)' });
         }
 
-        // VoiceCenter External CDR sends fields like:
-        // CallerNumber, TargetNumber, Duration, CallID, RecordURL, DialStatus, CdrType, Date, etc.
-        // We also support generic field names for flexibility.
         if (!IS_PROD) {
             console.log('[Voicenter Webhook] Received payload:', body);
         }
 
-        // Resolve orgId from query param (set when configuring webhook URL in CPanel)
+        // Resolve orgId from query param — may be a slug, must convert to UUID
         const searchParams = request.nextUrl.searchParams;
-        const orgId = searchParams.get('orgId') || body.organizationId || body.organization_id;
+        const rawOrgId = searchParams.get('orgId') || body.organizationId || body.organization_id;
 
-        if (!orgId) {
+        if (!rawOrgId) {
             return NextResponse.json({ error: 'Missing orgId' }, { status: 400 });
         }
 
-        // Map VoiceCenter CDR fields (official names) with generic fallbacks
+        const orgUUID = await resolveOrgId(rawOrgId);
+        if (!orgUUID) {
+            console.error('[Voicenter Webhook] Org not found for slug/id:', rawOrgId);
+            return NextResponse.json({ error: 'Organization not found', orgId: rawOrgId }, { status: 404 });
+        }
+
+        // Map VoiceCenter CDR fields
         const phone = body.CallerNumber || body.caller_number || body.caller || body.CallerID || body.from;
         const targetPhone = body.TargetNumber || body.destination_number || body.target || body.CalledNumber || body.to;
         const duration = body.Duration || body.call_duration || body.duration || 0;
@@ -81,7 +103,6 @@ export async function POST(request: NextRequest) {
         const callId = body.CallID || body.call_id || body.callId;
         const dialStatus = body.DialStatus || body.status;
         const cdrType = body.CdrType || body.cdr_type;
-        // CdrType: 1=Incoming, 4=Extension Outgoing, 9/10=Click2Call legs
         const isIncoming = cdrType === 1 || body.direction === 'inbound' || body.Direction === 'inbound';
         const event_type = body.event_type;
         
@@ -97,7 +118,7 @@ export async function POST(request: NextRequest) {
             if (normalizedPhone && normalizedPhone.length >= 8) {
                 const lead = await prisma.systemLead.findFirst({
                     where: {
-                        organizationId: orgId,
+                        organizationId: orgUUID,
                         phone: { contains: normalizedPhone },
                     },
                     select: { id: true, name: true },
@@ -112,8 +133,8 @@ export async function POST(request: NextRequest) {
 
         // If it's a Screen Pop event (e.g. ringing)
         if (event_type === 'ringing' || body.status === 'ringing') {
-            // Send real-time screen pop notification via SSE
-            addScreenPop(orgId, {
+            // IMPORTANT: addScreenPop expects slug (not UUID) to match SSE endpoint
+            addScreenPop(rawOrgId, {
                 caller: customerPhone || phone || 'Unknown',
                 leadId: leadId || undefined,
                 leadName: leadId ? leadName : undefined,
@@ -123,7 +144,7 @@ export async function POST(request: NextRequest) {
                 return NextResponse.json({
                     success: true,
                     action: 'screen_pop',
-                    url: `/w/${orgId}/system/dialer?leadId=${leadId}`
+                    url: `/w/${rawOrgId}/system/dialer?leadId=${leadId}`
                 });
             }
             return NextResponse.json({ success: true, message: 'Ringing event received, screen pop sent' });
@@ -131,10 +152,9 @@ export async function POST(request: NextRequest) {
 
         // If it's a CDR (Call ended)
         if (leadId) {
-            // Save call activity
             await prisma.systemLeadActivity.create({
                 data: {
-                    organizationId: orgId,
+                    organizationId: orgUUID,
                     leadId: leadId,
                     type: 'call',
                     direction: isIncoming ? 'inbound' : 'outbound',
@@ -145,6 +165,7 @@ export async function POST(request: NextRequest) {
                         callId,
                         agentPhone,
                         source: 'voicenter_webhook'
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     } as unknown as any
                 }
             });
@@ -160,35 +181,41 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
-    // Some providers use GET for screen pop to instantly redirect the agent's browser
     const searchParams = request.nextUrl.searchParams;
-    const orgId = searchParams.get('orgId');
+    const rawOrgId = searchParams.get('orgId');
     const caller = searchParams.get('caller') || searchParams.get('CallerID') || searchParams.get('CallerNumber');
     
-    if (!orgId) {
+    if (!rawOrgId) {
         return NextResponse.json({ error: 'Missing orgId' }, { status: 400 });
     }
 
-    // Handle test/ping requests
+    // Handle test/ping requests (no caller = just checking the webhook is alive)
     if (!caller) {
         return NextResponse.json({ 
             success: true, 
             message: 'Webhook active (GET)', 
-            orgId,
+            orgId: rawOrgId,
             hint: 'Add ?caller=PHONE_NUMBER to test screen pop' 
         });
     }
 
     try {
+        // Resolve slug → UUID
+        const orgUUID = await resolveOrgId(rawOrgId);
+        if (!orgUUID) {
+            console.error('[Voicenter Webhook GET] Org not found for:', rawOrgId);
+            return NextResponse.json({ error: 'Organization not found', orgId: rawOrgId }, { status: 404 });
+        }
+
         const normalizedPhone = extractPhoneDigits(caller);
         if (!IS_PROD) {
-            console.log('[Voicenter Webhook GET] Looking for phone:', normalizedPhone, 'in org:', orgId);
+            console.log('[Voicenter Webhook GET] phone:', normalizedPhone, 'org:', rawOrgId, 'uuid:', orgUUID);
         }
         
         if (normalizedPhone && normalizedPhone.length >= 8) {
             const lead = await prisma.systemLead.findFirst({
                 where: {
-                    organizationId: orgId,
+                    organizationId: orgUUID,
                     phone: { contains: normalizedPhone },
                 },
                 select: { id: true, name: true },
@@ -199,13 +226,19 @@ export async function GET(request: NextRequest) {
             }
             
             if (lead) {
-                // Return a redirect to the lead page
-                return NextResponse.redirect(new URL(`/w/${orgId}/system/dialer?leadId=${lead.id}`, request.url));
+                // Send screen pop via SSE
+                // IMPORTANT: addScreenPop expects slug (not UUID) to match SSE endpoint
+                addScreenPop(rawOrgId, {
+                    caller: normalizedPhone,
+                    leadId: lead.id,
+                    leadName: lead.name,
+                });
+                return NextResponse.redirect(new URL(`/w/${rawOrgId}/system/dialer?leadId=${lead.id}`, request.url));
             }
         }
         
-        // Redirect to general dialer if not found
-        return NextResponse.redirect(new URL(`/w/${orgId}/system/dialer`, request.url));
+        // No lead found — redirect to general dialer
+        return NextResponse.redirect(new URL(`/w/${rawOrgId}/system/dialer`, request.url));
     } catch (error) {
         console.error('[Voicenter Webhook GET] Error:', error);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
@@ -223,3 +256,4 @@ export async function OPTIONS() {
         },
     });
 }
+

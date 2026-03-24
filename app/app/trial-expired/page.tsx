@@ -5,6 +5,7 @@ import { Calendar, Mail, Phone, CircleAlert, Building2, Clock, CreditCard, Refre
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { useAuth } from '@clerk/nextjs';
+import { clearWorkspaceSession } from '@/lib/client/workspace-session';
 
 interface OrganizationInfo {
   id: string;
@@ -176,7 +177,7 @@ export default function TrialExpiredPage() {
             {/* Sign Out */}
             <div className="text-center">
               <button 
-                onClick={() => signOut?.({ redirectUrl: '/login' })}
+                onClick={() => { clearWorkspaceSession(); signOut?.({ redirectUrl: '/login' }); }}
                 className="text-[11px] font-bold text-slate-400 hover:text-slate-600 transition-colors uppercase tracking-widest"
               >
                 התנתקות מהחשבון

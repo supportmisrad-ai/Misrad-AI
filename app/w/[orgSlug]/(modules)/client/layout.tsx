@@ -11,6 +11,7 @@ export const metadata: Metadata = getSystemMetadata('client');
 
 import { getEntitlements } from '@/lib/entitlements';
 import { ArchiveModeBanner } from '@/components/shared/ArchiveModeBanner';
+import { WorkspaceSessionSaver } from '@/components/shared/WorkspaceSessionSaver';
 
 // Async component for access check - wrapped in Suspense
 async function AccessCheck({ orgSlug, children }: { orgSlug: string; children: React.ReactNode }) {
@@ -27,6 +28,11 @@ async function AccessCheck({ orgSlug, children }: { orgSlug: string; children: R
 
   return (
     <>
+      <WorkspaceSessionSaver
+        orgSlug={orgSlug}
+        moduleKey="client"
+        entitlements={workspace.entitlements as Record<string, boolean>}
+      />
       {entitlements.banner && (
         <ArchiveModeBanner 
           message={entitlements.banner.message} 

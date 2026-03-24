@@ -1,8 +1,14 @@
 import 'server-only';
 
+import * as React from 'react';
 import prisma, { accelerateCache } from '@/lib/prisma';
 import { OSModuleKey } from '@/lib/os/modules/types';
 import { asObject } from '@/lib/shared/unknown';
+
+type CacheFn = <Args extends unknown[], R>(fn: (...args: Args) => R) => (...args: Args) => R;
+function identityCache<Args extends unknown[], R>(fn: (...args: Args) => R) { return fn; }
+const reactCache: unknown = Reflect.get(React, 'cache');
+const cache: CacheFn = typeof reactCache === 'function' ? (reactCache as CacheFn) : identityCache;
 
 export type SystemFeatureFlags = {
   maintenanceMode: boolean;
@@ -45,7 +51,7 @@ function normalizeLaunchScopeModules(input: unknown): Record<OSModuleKey, boolea
   };
 }
 
-export async function getSystemFeatureFlags(): Promise<SystemFeatureFlags> {
+const getSystemFeatureFlagsUncached = async (): Promise<SystemFeatureFlags> => {
   try {
     const row = await prisma.coreSystemSettings.findUnique({
       where: { key: 'feature_flags' },
@@ -92,4 +98,6 @@ export async function getSystemFeatureFlags(): Promise<SystemFeatureFlags> {
       launch_scope_modules: { ...DEFAULT_LAUNCH_SCOPE_MODULES },
     };
   }
-}
+};
+
+export const getSystemFeatureFlags = cache(getSystemFeatureFlagsUncached);

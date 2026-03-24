@@ -1,6 +1,6 @@
 import 'server-only';
 
-import prisma from '@/lib/prisma';
+import prisma, { accelerateCache } from '@/lib/prisma';
 import { withPrismaTenantIsolationOverride } from '@/lib/prisma-tenant-guard';
 import { getErrorMessage, isUuidLike, logWorkspaceAccessError, redactId, setErrorStatus } from './utils';
 import type { OrganizationRow, SocialUserRow } from './types';
@@ -48,6 +48,7 @@ export async function resolveOrganizationForWorkspaceAccessUi(params: {
           has_client: true,
           has_operations: true,
         },
+        ...accelerateCache({ ttl: 30, swr: 60 }),
       });
     } catch (e: unknown) {
       const msg = String(getErrorMessage(e) || '').toLowerCase();
@@ -110,6 +111,7 @@ export async function resolveOrganizationForWorkspaceAccessUi(params: {
             has_client: true,
             has_operations: true,
           },
+          ...accelerateCache({ ttl: 30, swr: 60 }),
         },
         { suppressReporting: true, reason: 'workspace_access_resolve_org_by_slug_candidates', source: 'workspace_access' }
       )
@@ -185,6 +187,7 @@ export async function resolveOrganizationForWorkspaceAccessApi(params: {
             has_client: true,
             has_operations: true,
           },
+          ...accelerateCache({ ttl: 30, swr: 60 }),
         },
         {
           suppressReporting: true,

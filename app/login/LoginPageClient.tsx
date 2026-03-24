@@ -5,106 +5,10 @@ import { useRouter } from "next/navigation";
 import { LoginView } from "../../views/LoginView";
 import { useEffect, useState, useRef, useCallback } from "react";
 import CustomAuth from '@/components/social/CustomAuth';
-import { normalizeLegacyRedirectPath, toWorkspacePathForOrgSlug } from '@/lib/os/legacy-routing';
-import { extractData } from '@/lib/shared/api-types';
+import { normalizeLegacyRedirectPath } from '@/lib/os/legacy-routing';
+import { readWorkspaceSession, resolveTargetRouteFromSession, clearWorkspaceSession } from '@/lib/client/workspace-session';
 import { ShieldCheck, Zap } from 'lucide-react';
 import { getSystemIconUrl } from '@/lib/metadata';
-
-type WorkspacesApiItem = {
-  id?: string;
-  slug?: string;
-  entitlements?: Record<string, boolean>;
-  onboardingComplete?: boolean;
-};
-
-type WorkspacesApiPayload = {
-  workspaces?: WorkspacesApiItem[];
-};
-
-// Detect mobile for reduced retries (faster UX on slow networks)
-const isMobile = typeof navigator !== 'undefined' && /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-
-// Minimized retries for fastest login experience - mobile gets fewer retries
-const MAX_WORKSPACE_RETRIES = isMobile ? 2 : 3; // Reduced for mobile speed
-const WORKSPACE_RETRY_DELAY = isMobile ? 300 : 500; // Faster on mobile
-const WORKSPACE_TIMEOUT_MS = 8000; // 8 second timeout (reduced from 10s)
-
-async function resolveFirstWorkspace(): Promise<{ orgSlug: string | null; entitlements: Record<string, boolean>; onboardingComplete: boolean }> {
-  for (let attempt = 0; attempt < MAX_WORKSPACE_RETRIES; attempt++) {
-    try {
-      // Create abort controller for timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), WORKSPACE_TIMEOUT_MS);
-      
-      // Fetch workspaces and last location in parallel with timeout
-      const [workspacesRes, lastLocationRes] = await Promise.all([
-        fetch('/api/workspaces', { cache: 'no-store', signal: controller.signal }),
-        fetch('/api/user/last-location', { cache: 'no-store', signal: controller.signal }).catch(() => null),
-      ]);
-      
-      clearTimeout(timeoutId);
-
-      if (!workspacesRes.ok) {
-        console.warn(`[Login] /api/workspaces returned ${workspacesRes.status} on attempt ${attempt + 1}`);
-        if (attempt < MAX_WORKSPACE_RETRIES - 1) {
-          await new Promise(resolve => setTimeout(resolve, WORKSPACE_RETRY_DELAY));
-          continue;
-        }
-        return { orgSlug: null, entitlements: {}, onboardingComplete: false };
-      }
-
-      const data: unknown = await workspacesRes.json();
-      const payload = extractData<WorkspacesApiPayload>(data);
-      const workspaces = Array.isArray(payload?.workspaces) ? payload.workspaces : [];
-
-      if (workspaces.length === 0 && attempt < MAX_WORKSPACE_RETRIES - 1) {
-        await new Promise(resolve => setTimeout(resolve, WORKSPACE_RETRY_DELAY));
-        continue;
-      }
-
-      if (workspaces.length === 0) {
-        return { orgSlug: null, entitlements: {}, onboardingComplete: false };
-      }
-
-      // Workspace selection priority:
-      // 1. Last visited workspace (if user still has access)
-      // 2. Primary workspace (from /api/workspaces - already sorted)
-      // 3. First available workspace (fallback)
-      let selectedWorkspace = workspaces[0];
-
-      if (lastLocationRes?.ok) {
-        const lastLocationData = extractData<{ orgSlug?: string | null }>(await lastLocationRes.json());
-        const lastOrgSlug = lastLocationData?.orgSlug ? String(lastLocationData.orgSlug) : null;
-        if (lastOrgSlug) {
-          const lastWorkspace = workspaces.find(
-            (w) => String(w.slug) === lastOrgSlug || String(w.id) === lastOrgSlug
-          );
-          if (lastWorkspace) {
-            selectedWorkspace = lastWorkspace;
-          }
-        }
-      }
-
-      const orgSlug = selectedWorkspace.slug ?? selectedWorkspace.id ?? null;
-      const entitlements: Record<string, boolean> =
-        selectedWorkspace.entitlements && typeof selectedWorkspace.entitlements === 'object'
-          ? selectedWorkspace.entitlements
-          : {};
-
-      const onboardingComplete = Boolean(selectedWorkspace.onboardingComplete);
-
-      return { orgSlug: orgSlug ? String(orgSlug) : null, entitlements, onboardingComplete };
-    } catch (err) {
-      console.error(`[Login] resolveFirstWorkspace error on attempt ${attempt + 1}:`, err);
-      if (attempt < MAX_WORKSPACE_RETRIES - 1) {
-        await new Promise(resolve => setTimeout(resolve, WORKSPACE_RETRY_DELAY));
-        continue;
-      }
-      return { orgSlug: null, entitlements: {}, onboardingComplete: false };
-    }
-  }
-  return { orgSlug: null, entitlements: {}, onboardingComplete: false };
-}
 
 /** Generate a unique username from an email address (Clerk requires username). */
 function generateUsername(email: string): string {
@@ -123,6 +27,15 @@ export default function LoginPageClient({ initialUserId, pendingPlan, pendingSea
   const [ssoErrorMessage, setSsoErrorMessage] = useState<string | null>(null);
   const continuationAttempted = useRef(false);
   const redirectAttempted = useRef(false);
+
+  // Fallback: if user lands on /login and is NOT signed in, clear any stale
+  // workspace session cache. This covers signOut flows that didn't go through /sign-out.
+  useEffect(() => {
+    if (!isLoaded) return;
+    if (!isSignedIn) {
+      clearWorkspaceSession();
+    }
+  }, [isLoaded, isSignedIn]);
 
   // Parse URL params safely in useEffect to avoid SSR issues
   useEffect(() => {
@@ -372,64 +285,29 @@ export default function LoginPageClient({ initialUserId, pendingPlan, pendingSea
       const v = String(value).trim().toLowerCase();
       return v === '/login' || v.startsWith('/login?') || v.startsWith('/login#') || v.startsWith('/sign-in') || v.startsWith('/sign-up');
     };
-    
-    // If redirect parameter exists and is valid, go there
+
+    // Ultra-fast path: if we have a valid cached session for this user,
+    // navigate directly to the workspace — zero server round-trips.
+    // Falls back to /me (server-side resolve) if cache is missing/stale/wrong user.
+    const session = readWorkspaceSession(userId);
+
+    if (session && !normalizedRedirectPath) {
+      const target = resolveTargetRouteFromSession(session);
+      router.push(target);
+      return;
+    }
+
     if (
       normalizedRedirectPath &&
       normalizedRedirectPath.startsWith('/') &&
       !normalizedRedirectPath.startsWith('//') &&
       !isLoginRedirect(normalizedRedirectPath)
     ) {
-      (async () => {
-        try {
-          const { orgSlug } = await resolveFirstWorkspace();
-          if (orgSlug) {
-            router.push(toWorkspacePathForOrgSlug(orgSlug, normalizedRedirectPath));
-            return;
-          }
-          router.push(normalizedRedirectPath);
-        } catch (error) {
-          console.error('[Login] Error during redirect with path:', error);
-          redirectAttempted.current = false;
-        }
-      })();
+      // Preserve the redirect param so /me can forward it after resolving workspace
+      const meUrl = `/me?redirect=${encodeURIComponent(normalizedRedirectPath)}`;
+      router.push(meUrl);
     } else {
-      (async () => {
-        try {
-          const { orgSlug, entitlements, onboardingComplete } = await resolveFirstWorkspace();
-          
-          if (!orgSlug) {
-            console.log('[Login] No orgSlug found, redirecting to /workspaces/new');
-            router.push('/workspaces/new');
-            return;
-          }
-
-          // If onboarding is not complete (no plan selected), send to onboarding
-          if (!onboardingComplete) {
-            console.log('[Login] Onboarding not complete, redirecting to /workspaces/onboarding');
-            router.push('/workspaces/onboarding');
-            return;
-          }
-
-          const priority: Array<{ key: string; route: string }> = [
-            { key: 'nexus', route: `/w/${encodeURIComponent(String(orgSlug))}/nexus` },
-            { key: 'system', route: `/w/${encodeURIComponent(String(orgSlug))}/system` },
-            { key: 'operations', route: `/w/${encodeURIComponent(String(orgSlug))}/operations` },
-            { key: 'social', route: `/w/${encodeURIComponent(String(orgSlug))}/social` },
-            { key: 'finance', route: `/w/${encodeURIComponent(String(orgSlug))}/finance` },
-            { key: 'client', route: `/w/${encodeURIComponent(String(orgSlug))}/client` },
-          ];
-
-          const first = priority.find(p => Boolean(entitlements[p.key]));
-          const targetRoute = first?.route || '/workspaces';
-          console.log('[Login] Redirecting to:', targetRoute);
-          router.push(targetRoute);
-        } catch (error) {
-          console.error('[Login] Error during redirect:', error);
-          redirectAttempted.current = false;
-          router.push('/workspaces/new');
-        }
-      })();
+      router.push('/me');
     }
   }, [isSignedIn, isLoaded, userId]);
 

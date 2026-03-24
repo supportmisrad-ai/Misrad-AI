@@ -209,49 +209,45 @@ export function UnifiedNotificationsBell({
   const visibleIds = filteredNotifications.map((n) => n.id);
 
   const handleMarkAllRead = useCallback(async () => {
+    setNotifications((prev) => prev.map((n) => (visibleIds.includes(n.id) ? { ...n, is_read: true, read: true } : n)));
     const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
     if (!orgSlug) return;
-
     try {
       await fetch('/api/notifications/mark-all-read', {
         method: 'POST',
         headers: { 'x-org-id': orgSlug },
       });
-      setNotifications((prev) => prev.map((n) => (visibleIds.includes(n.id) ? { ...n, is_read: true, read: true } : n)));
     } catch {
-      // ignore
+      // ignore — optimistic update already applied
     }
   }, [visibleIds]);
 
   const handleDismiss = useCallback(async (id: string, e?: React.MouseEvent) => {
     e?.stopPropagation();
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
     const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
     if (!orgSlug) return;
-
     try {
       await fetch(`/api/notifications/${id}/dismiss`, {
         method: 'POST',
         headers: { 'x-org-id': orgSlug },
       });
-      setNotifications((prev) => prev.filter((n) => n.id !== id));
     } catch {
-      // Optimistic remove anyway
-      setNotifications((prev) => prev.filter((n) => n.id !== id));
+      // ignore — optimistic update already applied
     }
   }, []);
 
   const handleClearAll = useCallback(async () => {
+    setNotifications((prev) => prev.filter((n) => !visibleIds.includes(n.id)));
     const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
     if (!orgSlug) return;
-
     try {
       await fetch('/api/notifications/clear-all', {
         method: 'POST',
         headers: { 'x-org-id': orgSlug },
       });
-      setNotifications((prev) => prev.filter((n) => !visibleIds.includes(n.id)));
     } catch {
-      setNotifications((prev) => prev.filter((n) => !visibleIds.includes(n.id)));
+      // ignore — optimistic update already applied
     }
   }, [visibleIds]);
 

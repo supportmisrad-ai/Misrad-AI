@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import type { CommandPaletteNavItem } from '@/components/command-palette/command-palette.types';
 import type { Lead } from '@/types';
 
-type AdminArea = 'customers' | 'users' | 'support' | 'product' | 'content' | 'infra' | 'bot' | 'ai' | 'analytics';
+type AdminArea = 'customers' | 'users' | 'support' | 'product' | 'content' | 'infra' | 'bot' | 'ai' | 'analytics' | 'telephony';
 const ADMIN_AREA_STORAGE_KEY = 'misrad_admin_area_v2';
 
 function inferAdminAreaFromPathname(pathname: string): AdminArea | null {
@@ -67,6 +67,9 @@ function inferAdminAreaFromPathname(pathname: string): AdminArea | null {
   // analytics
   if (p.startsWith('/app/admin/analytics')) return 'analytics';
 
+  // telephony
+  if (p.startsWith('/app/admin/telephony')) return 'telephony';
+
   // infra
   if (p.startsWith('/app/admin/modules')) return 'infra';
   if (p.startsWith('/app/admin/system-flags')) return 'infra';
@@ -83,7 +86,7 @@ function inferAdminAreaFromPathname(pathname: string): AdminArea | null {
   return null;
 }
 
-const ADMIN_AREAS: AdminArea[] = ['customers', 'users', 'support', 'product', 'content', 'infra', 'bot', 'ai', 'analytics'];
+const ADMIN_AREAS: AdminArea[] = ['customers', 'users', 'support', 'product', 'content', 'infra', 'bot', 'ai', 'analytics', 'telephony'];
 
 function isAdminArea(value: unknown): value is AdminArea {
   return ADMIN_AREAS.includes(value as AdminArea);
@@ -99,6 +102,7 @@ const AREA_META: Record<AdminArea, { label: string; description: string }> = {
   bot: { label: 'בוט', description: 'וואטסאפ · לידים · שיחות' },
   ai: { label: 'AI', description: 'ניהול AI · ספקים · מודלים · קרדיטים' },
   analytics: { label: 'אנליטיקס', description: 'אתר · AI · לקוחות · תובנות' },
+  telephony: { label: 'טלפוניה', description: 'Voicenter · שלוחות · חיוב · CDR' },
 };
 
 function getAdminAreaLabel(area: AdminArea): string {
@@ -278,6 +282,13 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
       { href: '/app/admin/analytics', label: 'אנליטיקס אתר', icon: BarChart3 },
       { href: '/app/admin/analytics/ai', label: 'אנליטיקס AI', icon: BrainCircuit },
       { href: '/app/admin/analytics/customers', label: 'אנליטיקס לקוחות', icon: Users },
+    ],
+    telephony: [
+      { href: '/app/admin/telephony', label: 'דשבורד טלפוניה', icon: Globe },
+      { href: '/app/admin/telephony/accounts', label: 'חשבונות לקוחות', icon: Building2 },
+      { href: '/app/admin/telephony/extensions', label: 'שלוחות', icon: Network },
+      { href: '/app/admin/telephony/usage', label: 'שימוש וחיוב', icon: DollarSign },
+      { href: '/app/admin/partners', label: 'שותפים והפניות', icon: Handshake },
     ],
   }), [orgSlug]);
 

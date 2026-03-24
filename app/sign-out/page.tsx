@@ -2,12 +2,14 @@
 
 import { useClerk } from '@clerk/nextjs';
 import { useEffect } from 'react';
+import { clearWorkspaceSession } from '@/lib/client/workspace-session';
 
 export default function SignOutPage() {
   const { signOut } = useClerk();
 
   useEffect(() => {
     let cancelled = false;
+    clearWorkspaceSession();
     (async () => {
       try {
         await signOut({ redirectUrl: '/login' });

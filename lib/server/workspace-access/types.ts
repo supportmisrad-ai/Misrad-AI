@@ -39,7 +39,7 @@ export type OrganizationModuleFlags = {
   coupon_allowed_modules?: unknown;
 };
 
-export type SocialUserRow = { id: string; organization_id: string | null; role?: string | null };
+export type SocialUserRow = { id: string; organization_id: string | null; role?: string | null; allowed_modules?: string[] | null };
 
 export type OrganizationRow = {
   id: string;

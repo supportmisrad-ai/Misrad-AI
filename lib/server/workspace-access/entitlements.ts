@@ -1,6 +1,6 @@
 import 'server-only';
 
-import prisma from '@/lib/prisma';
+import prisma, { accelerateCache } from '@/lib/prisma';
 import { OSModuleKey } from '@/lib/os/modules/types';
 import { getSystemFeatureFlags } from '@/lib/server/featureFlags';
 import { BILLING_PACKAGES } from '@/lib/billing/pricing';
@@ -128,6 +128,7 @@ async function loadOrganizationModuleFlags(organizationId: string): Promise<Orga
         has_client: true,
         has_operations: true,
       },
+      ...accelerateCache({ ttl: 30, swr: 60 }),
     });
 
     if (!org) {
@@ -204,6 +205,7 @@ export async function getOrganizationPackageEntitlements(
     const user = await prisma.organizationUser.findFirst({
       where: { id: socialUserId, organization_id: organizationId },
       select: { allowed_modules: true, role: true },
+      ...accelerateCache({ ttl: 30, swr: 60 }),
     });
 
     if (user?.role === 'owner' || user?.role === 'super_admin') {
@@ -239,7 +241,8 @@ export async function getOrganizationEntitlements(
   organizationId: string,
   socialUserId?: string,
   orgSlug?: string,
-  preloadedFlags?: OrganizationModuleFlags
+  preloadedFlags?: OrganizationModuleFlags,
+  preloadedUserModules?: { role: string | null; allowed_modules: string[] | null } | null
 ): Promise<WorkspaceEntitlements> {
   const isE2E = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
 
@@ -258,6 +261,7 @@ export async function getOrganizationEntitlements(
           has_operations: true,
           coupon_allowed_modules: true,
         },
+        ...accelerateCache({ ttl: 30, swr: 60 }),
       });
     } catch (error: unknown) {
       const message = String(getErrorMessage(error) || '').toLowerCase();
@@ -317,19 +321,22 @@ export async function getOrganizationEntitlements(
     : baseOrgEntitlements;
 
   if (socialUserId) {
-    let user: { allowed_modules: string[] | null; role: string | null } | null = null;
-    try {
-      user = await prisma.organizationUser.findFirst({
-        where: { id: socialUserId, organization_id: organizationId },
-        select: { allowed_modules: true, role: true },
-      });
-    } catch (error: unknown) {
-      logWorkspaceAccessError('[workspace-access] failed to load allowed_modules for social_user', {
-        socialUserId: redactId(socialUserId),
-        organizationId: redactId(organizationId),
-        message: getErrorMessage(error),
-      });
-      user = null;
+    let user: { allowed_modules: string[] | null; role: string | null } | null = preloadedUserModules ?? null;
+    if (!user) {
+      try {
+        user = await prisma.organizationUser.findFirst({
+          where: { id: socialUserId, organization_id: organizationId },
+          select: { allowed_modules: true, role: true },
+          ...accelerateCache({ ttl: 30, swr: 60 }),
+        });
+      } catch (error: unknown) {
+        logWorkspaceAccessError('[workspace-access] failed to load allowed_modules for social_user', {
+          socialUserId: redactId(socialUserId),
+          organizationId: redactId(organizationId),
+          message: getErrorMessage(error),
+        });
+        user = null;
+      }
     }
 
     if (user?.role === 'owner' || user?.role === 'super_admin') {

@@ -2,7 +2,7 @@ import 'server-only';
 
 import { currentUser } from '@clerk/nextjs/server';
 import * as React from 'react';
-import prisma from '@/lib/prisma';
+import prisma, { accelerateCache } from '@/lib/prisma';
 import { withPrismaTenantIsolationOverride, withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 
 import { asObject, getErrorMessage, logWorkspaceAccessError, redactId, setErrorStatus } from './utils';
@@ -35,7 +35,8 @@ export async function getCurrentSocialUser(clerkUserId: string): Promise<SocialU
           withPrismaTenantIsolationOverride(
             {
               where: { clerk_user_id: normalizedClerkUserId },
-              select: { id: true, organization_id: true, role: true },
+              select: { id: true, organization_id: true, role: true, allowed_modules: true },
+              ...accelerateCache({ ttl: 30, swr: 60 }),
             },
             {
               source: 'workspace_access',

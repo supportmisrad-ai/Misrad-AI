@@ -7,12 +7,20 @@ interface TelephonyConfig {
   provider: 'voicenter' | 'twilio' | null;
   isActive: boolean;
   credentials: {
+    // Legacy fields
     UserCode?: string;
     OrganizationCode?: string;
-    // Widget credentials (for WebRTC)
+    // Voicenter v2 fields
+    code?: string;              // Click2Call code
+    sipUsername?: string;       // SIP/WebRTC username (extension)
+    sipPassword?: string;       // SIP password
+    webrtcToken?: string;       // JWT token for WebRTC
+    email?: string;             // CPanel email
+    password?: string;          // CPanel password
+    domain?: string;            // SIP domain
+    eventsToken?: string;       // Real-time events token
+    // Generic
     username?: string;
-    password?: string;
-    domain?: string;
   } | null;
 }
 
@@ -193,13 +201,18 @@ export function TelephonyProvider({ children, orgSlug }: TelephonyProviderProps)
     }
   }, [config, orgSlug]);
 
-  // Build widget credentials
+  // Build widget credentials from telephony config
   const widgetCredentials: VoicecenterWidgetCredentials | null = 
-    config?.isActive && config?.credentials?.username && config?.credentials?.password && config?.credentials?.domain
+    config?.isActive && config?.credentials
       ? {
-          username: config.credentials.username,
-          password: config.credentials.password,
-          domain: config.credentials.domain,
+          // Use sipUsername if available, fallback to code/UserCode
+          username: config.credentials.sipUsername || config.credentials.code || config.credentials.UserCode || '',
+          // Use sipPassword if available, fallback to password
+          password: config.credentials.sipPassword || config.credentials.password || '',
+          // Use webrtcToken if available for JWT auth
+          authorization_jwt: config.credentials.webrtcToken || undefined,
+          // Domain from credentials or default to sip09.voicenter.co
+          domain: config.credentials.domain || 'sip09.voicenter.co',
         }
       : null;
 

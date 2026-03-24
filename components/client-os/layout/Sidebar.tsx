@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion, LayoutGroup } from 'framer-motion';
 import { Target, BarChart2, Video, Users, LogOut, Settings, CircleHelp, LayoutGrid } from 'lucide-react';
-import { SignOutButton } from '@clerk/nextjs';
 
 export const NAV_ITEMS = [
     { id: 'dashboard', label: 'סקירה כללית', icon: LayoutGrid, path: '/client-os' },
@@ -165,11 +164,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ user }) => {
                 <p className="text-sm font-bold text-slate-900 truncate leading-tight">{user.name || 'משתמש'}</p>
                 <p className="text-[10px] text-slate-500 truncate uppercase tracking-wider font-bold mt-0.5">{user.role === 'admin' || user.role === 'super_admin' ? 'הבוס' : 'חבר צוות'}</p>
             </div>
-            <SignOutButton>
-                <button className="text-slate-400 hover:text-red-500 transition-colors p-2 hover:bg-red-50 rounded-full" title="התנתק">
-                    <LogOut size={18} />
-                </button>
-            </SignOutButton>
+            <button
+                onClick={() => { window.location.href = '/sign-out'; }}
+                className="text-slate-400 hover:text-red-500 transition-colors p-2 hover:bg-red-50 rounded-full"
+                title="התנתק"
+            >
+                <LogOut size={18} />
+            </button>
          </div>
       </div>
     </aside>

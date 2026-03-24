@@ -41,6 +41,8 @@ export interface TelephonyCredentials {
     // SIP credentials for WebRTC softphone widget
     sipUsername?: string;  // Extension number from CPanel → Settings → Extensions
     sipPassword?: string;  // SIP password from extension settings (may differ from CPanel password)
+    // JWT token for WebRTC softphone (received from Voicenter)
+    webrtcToken?: string;
 
     // ── Twilio credentials ────────────────────────────────────────
     account_sid?: string;

@@ -37,6 +37,37 @@ const nextConfig: NextConfig = {
         ],
       },
       {
+        // /me and /login are auth entry points — never cache, always fresh
+        source: '/(me|login)(.*)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-store, no-cache',
+          },
+        ],
+      },
+      {
+        // Module pages: allow CDN/WebView to serve stale while revalidating in background
+        // This makes repeat visits instant on mobile
+        source: '/w/:orgSlug/:module(nexus|system|operations|social|finance|client)(.*)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'private, s-maxage=10, stale-while-revalidate=300',
+          },
+        ],
+      },
+      {
+        // API workspaces list: allow short private cache in WebView (30s)
+        source: '/api/workspaces',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'private, max-age=30, stale-while-revalidate=60',
+          },
+        ],
+      },
+      {
         source: '/:path*.svg',
         headers: [
           {

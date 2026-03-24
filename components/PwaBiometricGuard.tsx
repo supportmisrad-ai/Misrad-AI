@@ -81,7 +81,12 @@ export function PwaBiometricGuard({ children }: { children: React.ReactNode }) {
   const [requiresAuth, setRequiresAuth] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [error, setError] = useState('');
-  const [checked, setChecked] = useState(false);
+  // Start as checked=true when not in standalone mode — avoids blocking render
+  // for the vast majority of users (browser / APK without PWA install)
+  const [checked, setChecked] = useState(() => {
+    if (typeof window === 'undefined') return true;
+    return !isStandaloneMode();
+  });
 
   // Relock when app is backgrounded / hidden. This makes biometric show again on next entry.
   useEffect(() => {

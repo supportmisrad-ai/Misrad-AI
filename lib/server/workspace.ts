@@ -162,6 +162,29 @@ export async function loadCurrentUserLastLocation(): Promise<LastLocation> {
   }
 }
 
+const PERSIST_LOCATION_THROTTLE_MS = 60 * 1000; // 60 seconds
+
+declare global {
+  var __MISRAD_LOCATION_PERSIST_LAST__: Map<string, number> | undefined;
+}
+
+function shouldSkipLocationPersist(clerkUserId: string, orgSlug: string, module: string | null | undefined): boolean {
+  if (!globalThis.__MISRAD_LOCATION_PERSIST_LAST__) {
+    globalThis.__MISRAD_LOCATION_PERSIST_LAST__ = new Map();
+  }
+  const map = globalThis.__MISRAD_LOCATION_PERSIST_LAST__;
+  const key = `${clerkUserId}:${orgSlug}:${module ?? ''}`;
+  const now = Date.now();
+  const last = map.get(key);
+  if (last !== undefined && now - last < PERSIST_LOCATION_THROTTLE_MS) return true;
+  map.set(key, now);
+  if (map.size > 1000) {
+    const oldest = Array.from(map.entries()).sort((a, b) => a[1] - b[1]).slice(0, 200);
+    for (const [k] of oldest) map.delete(k);
+  }
+  return false;
+}
+
 export async function persistCurrentUserLastLocation({
   orgSlug,
   module,
@@ -171,6 +194,10 @@ export async function persistCurrentUserLastLocation({
 }) {
   const clerkUserId = String((await getCurrentUserId()) || '').trim();
   if (!clerkUserId) {
+    return;
+  }
+
+  if (shouldSkipLocationPersist(clerkUserId, orgSlug, module)) {
     return;
   }
 

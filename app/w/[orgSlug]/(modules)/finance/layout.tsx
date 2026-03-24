@@ -8,6 +8,7 @@ import {
 import { getSystemMetadata } from '@/lib/metadata';
 import { UnifiedLoadingShell } from '@/components/shared/UnifiedLoadingShell';
 import FinanceLayoutShell from './FinanceLayoutShell';
+import { WorkspaceSessionSaver } from '@/components/shared/WorkspaceSessionSaver';
 
 // Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
@@ -31,6 +32,11 @@ async function AccessCheck({ orgSlug, children }: { orgSlug: string; children: R
 
   return (
     <>
+      <WorkspaceSessionSaver
+        orgSlug={orgSlug}
+        moduleKey="finance"
+        entitlements={workspace.entitlements as Record<string, boolean>}
+      />
       {entitlements.banner && (
         <ArchiveModeBanner 
           message={entitlements.banner.message} 

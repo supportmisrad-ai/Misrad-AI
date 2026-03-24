@@ -112,11 +112,14 @@ export const requireWorkspaceAccessByOrgSlugCached = cache(async (clerkUserId: s
     }).catch(() => undefined);
   }
 
+  const preloadedUserModules = socialUser ? { role: socialUser.role ?? null, allowed_modules: (socialUser.allowed_modules ?? null) as string[] | null } : null;
+
   let entitlements = await getOrganizationEntitlements(
     String(org.id),
     isSuperAdmin ? undefined : socialUser?.id ?? undefined,
     decodedOrgSlug,
-    org
+    org,
+    preloadedUserModules
   );
 
   if (isSuperAdmin) {
@@ -190,7 +193,9 @@ export const requireWorkspaceAccessByOrgSlugApiCached = cache(async (clerkUserId
     }).catch(() => undefined);
   }
 
-  let entitlements = await getOrganizationEntitlements(org.id, isSuperAdmin ? undefined : socialUser?.id, orgSlug, org);
+  const preloadedUserModulesApi = socialUser ? { role: socialUser.role ?? null, allowed_modules: (socialUser.allowed_modules ?? null) as string[] | null } : null;
+
+  let entitlements = await getOrganizationEntitlements(org.id, isSuperAdmin ? undefined : socialUser?.id, orgSlug, org, preloadedUserModulesApi);
 
   if (isSuperAdmin) {
     entitlements = { nexus: true, system: true, social: true, finance: true, client: true, operations: true };

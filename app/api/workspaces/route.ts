@@ -222,8 +222,21 @@ async function GETHandler() {
 
     const ttlSeconds = 60 * 60;
 
+    // Fast-path: skip signing for null/empty logos or already-public URLs (avoids I/O per workspace)
+    const needsSigning = (logo: string | null | undefined): boolean => {
+      if (!logo) return false;
+      const s = String(logo).trim();
+      // Public CDN URLs don't need signing
+      if (s.startsWith('https://images.') || s.startsWith('https://img.')) return false;
+      // Only Supabase storage paths need signing
+      return s.startsWith('/') || s.includes('supabase');
+    };
+
     const resolved = await Promise.all(
       workspaces.map(async (w) => {
+        if (!needsSigning(w.logo)) {
+          return { ...w, logo: w.logo ?? null };
+        }
         const signedLogo = await resolveStorageUrlMaybeServiceRole(w.logo, ttlSeconds, {
           organizationId: String(w.id),
           orgSlug: w.slug,

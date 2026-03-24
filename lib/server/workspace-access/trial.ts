@@ -5,6 +5,27 @@ import { withPrismaTenantIsolationOverride } from '@/lib/prisma-tenant-guard';
 import { DEFAULT_TRIAL_DAYS } from '@/lib/trial';
 import { getErrorMessage, logWorkspaceAccessError } from './utils';
 
+const TRIAL_ENFORCE_THROTTLE_MS = 5 * 60 * 1000; // 5 minutes
+
+declare global {
+  var __MISRAD_TRIAL_ENFORCE_LAST__: Map<string, number> | undefined;
+}
+
+function shouldSkipTrialEnforce(organizationId: string, now: number): boolean {
+  if (!globalThis.__MISRAD_TRIAL_ENFORCE_LAST__) {
+    globalThis.__MISRAD_TRIAL_ENFORCE_LAST__ = new Map();
+  }
+  const map = globalThis.__MISRAD_TRIAL_ENFORCE_LAST__;
+  const last = map.get(organizationId);
+  if (last !== undefined && now - last < TRIAL_ENFORCE_THROTTLE_MS) return true;
+  map.set(organizationId, now);
+  if (map.size > 500) {
+    const oldest = Array.from(map.entries()).sort((a, b) => a[1] - b[1]).slice(0, 100);
+    for (const [k] of oldest) map.delete(k);
+  }
+  return false;
+}
+
 export async function enforceTrialExpirationBestEffort(params: {
   organizationId: string;
   socialUserId: string;
@@ -16,6 +37,8 @@ export async function enforceTrialExpirationBestEffort(params: {
     const now = params.now instanceof Date ? params.now : new Date();
 
     if (!organizationId || !socialUserId || Number.isNaN(now.getTime())) return;
+
+    if (shouldSkipTrialEnforce(organizationId, now.getTime())) return;
 
     const [member, org] = await Promise.all([
       prisma.teamMember.findFirst(

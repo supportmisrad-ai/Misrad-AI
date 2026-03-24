@@ -18,7 +18,7 @@ import { useWorkspaceSystemIdentity } from '@/hooks/useWorkspaceSystemIdentity';
 import MobileBottomNav from '@/components/shared/MobileBottomNav';
 import { OSModuleSquircleIcon } from '@/components/shared/OSModuleIcon';
 import { ModuleHelpVideos } from '@/components/help-videos/ModuleHelpVideos';
-import { GlobalNotificationsBell } from '@/components/shared/GlobalNotificationsBell';
+import { UnifiedNotificationsBell } from '@/components/shared/UnifiedNotificationsBell';
 import { GlobalSearchModal } from '@/components/shared/GlobalSearchModal';
 import { GlobalSupportModal } from '@/components/shared/GlobalSupportModal';
 import { getOSModule } from '@/types/os-modules';
@@ -210,7 +210,7 @@ export default function FinanceShell(props: {
           onOpenSupportAction={undefined}
           actionsSlot={<ModuleHelpVideos moduleKey="finance" />}
           switcherSlot={<WorkspaceSwitcher />}
-          notificationsSlot={<GlobalNotificationsBell />}
+          notificationsSlot={<UnifiedNotificationsBell />}
           user={{ name: headerName, role: headerRole }}
           onProfileClickAction={goToMe}
           profileHref={`${basePath}/me`}

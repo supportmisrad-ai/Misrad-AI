@@ -1,5 +1,10 @@
 // Service Worker for MISRAD AI PWA
-const CACHE_NAME = 'misrad-ai-v3';
+const CACHE_NAME = 'misrad-ai-v4';
+
+// Capacitor WebView sets a stable hostname (app.misrad-ai.com).
+// Skip SW caching entirely for Capacitor — it proxies to the live server anyway,
+// and SW overhead adds latency without benefit in a native WebView context.
+const isCapacitorWebView = self.location.hostname === 'app.misrad-ai.com';
 
 function getString(obj, key, fallback) {
   const v = obj && obj[key];
@@ -110,6 +115,9 @@ self.addEventListener('install', (event) => {
 
 // Fetch event - serve from cache, fallback to network
 self.addEventListener('fetch', (event) => {
+  // In Capacitor WebView, skip SW entirely — native proxy handles all requests
+  if (isCapacitorWebView) return;
+
   const url = new URL(event.request.url);
   
   // Skip service worker for Next.js dev server chunks and HMR

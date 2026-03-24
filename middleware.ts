@@ -265,12 +265,6 @@ export default clerkMiddleware(
       });
     }
 
-     try {
-       await auth();
-     } catch {
-       // Intentionally ignore auth resolution errors for API routes.
-     }
-
     return NextResponse.next();
   }
 

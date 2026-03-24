@@ -12,7 +12,7 @@ import { getOSModule } from '@/types/os-modules';
 import { ModuleBackground } from '@/components/shared/ModuleBackground';
 import { GlobalSearchModal } from '@/components/shared/GlobalSearchModal';
 import { GlobalSupportModal } from '@/components/shared/GlobalSupportModal';
-import { GlobalNotificationsBell } from '@/components/shared/GlobalNotificationsBell';
+import { UnifiedNotificationsBell } from '@/components/shared/UnifiedNotificationsBell';
 import { WorkspaceSwitcher } from '@/components/os/WorkspaceSwitcher';
 import { ModuleHelpVideos } from '@/components/help-videos/ModuleHelpVideos';
 
@@ -108,7 +108,7 @@ export default function ClientMeShell({
           }}
           actionsSlot={<ModuleHelpVideos moduleKey="client" />}
           switcherSlot={<WorkspaceSwitcher />}
-          notificationsSlot={<GlobalNotificationsBell />}
+          notificationsSlot={<UnifiedNotificationsBell />}
           user={{ name: resolvedUser.name, role: resolvedUser.role }}
           onProfileClickAction={undefined}
           profileHref={`${basePath}/me`}
