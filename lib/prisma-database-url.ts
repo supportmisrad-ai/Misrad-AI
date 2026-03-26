@@ -14,14 +14,30 @@ export function getEffectiveDatabaseUrlForPrisma(): string | null {
 
   const forcePoolerTransaction =
     String(process.env.MISRAD_PRISMA_FORCE_POOLER_TRANSACTION || '').trim().toLowerCase() === 'true';
-  
+
   // ⚡ Prefer direct connection over pooler
   // In production, default to true to avoid Supabase RLS "Tenant or user not found" errors
   // (RLS requires JWT claims that Prisma doesn't send through the pooler)
   const preferDirectConnectionEnv = String(process.env.MISRAD_PRISMA_PREFER_DIRECT || '').trim().toLowerCase();
   const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL === '1';
-  const preferDirectConnection = preferDirectConnectionEnv === 'true' || 
-    (preferDirectConnectionEnv !== 'false' && isProduction);
+
+  // 🔴 CRITICAL: Detect free tier - if DIRECT_URL uses port 5432 (direct connection),
+  // it's blocked on Supabase free tier. Auto-disable preferDirectConnection unless explicitly enabled.
+  const isDirectUrlBlocked = ((): boolean => {
+    if (!envDirectUrl) return false;
+    try {
+      const u = new URL(envDirectUrl);
+      const port = String(u.port || '').trim();
+      // Port 5432 on Supabase = direct connection, blocked on free tier
+      // Port 6543/6544 = pooler, works on all tiers
+      return port === '5432';
+    } catch {
+      return false;
+    }
+  })();
+
+  const preferDirectConnection = preferDirectConnectionEnv === 'true' ||
+    (preferDirectConnectionEnv !== 'false' && isProduction && !isDirectUrlBlocked);
 
   const readPositiveIntEnv = (name: string): number | null => {
     const raw = String(process.env[name] || '').trim();
@@ -112,6 +128,7 @@ export function getEffectiveDatabaseUrlForPrisma(): string | null {
 
   // ⚡ UPDATED: Support preferDirectConnection to bypass PgBouncer/RLS issues
   // In production, default to DIRECT_URL to avoid Supabase RLS "Tenant or user not found" errors
+  // (RLS requires JWT claims that Prisma doesn't send through the pooler)
   if (preferDirectConnection && envDirectUrl) {
     const directParsed = normalizeCandidate(envDirectUrl);
     const isDirectPooler = directParsed && getPoolerMode(directParsed) !== 'none';
@@ -121,6 +138,8 @@ export function getEffectiveDatabaseUrlForPrisma(): string | null {
     } else if (isDirectPooler) {
       console.warn('[Prisma] DIRECT_URL is a pooler URL - falling back to DATABASE_URL');
     }
+  } else if (isDirectUrlBlocked) {
+    console.log('[Prisma] Auto-detected blocked direct connection (port 5432) - using pooler instead. Add MISRAD_PRISMA_PREFER_DIRECT=true to force direct connection if you upgrade Supabase plan.');
   }
 
   // Prisma runtime should always prefer DATABASE_URL. DIRECT_URL is reserved for CLI/migrations.
