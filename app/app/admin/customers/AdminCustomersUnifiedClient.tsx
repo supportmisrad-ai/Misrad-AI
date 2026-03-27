@@ -146,7 +146,7 @@ export default function AdminCustomersUnifiedClient({
                 <Plus size={16} />
                 הקמת ארגון
               </Button>
-              <Button variant="outline" size="sm" onClick={() => router.refresh()}>
+              <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
                 <RefreshCw size={16} />
               </Button>
             </div>

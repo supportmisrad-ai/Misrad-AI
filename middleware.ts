@@ -355,6 +355,30 @@ export default clerkMiddleware(
     return response;
   }
 
+  // Handle malformed URLs in workspace paths - redirect /w/[orgSlug]/me and /w/[orgSlug]/notifications to /system/ paths
+  // Only for GET requests - POST requests might be Server Actions
+  const isGetRequest = req.method === 'GET' || req.method === undefined;
+  const workspacePathMatch = pathname.match(/^\/w\/([^\/]+)\/(me|notifications|settings|reports|analytics|teams|partners|field_map|dialer|calendar|call_analyzer|comms|forms|automations|hub|system|sales_pipeline|sales_leads|headquarters|notifications_center)$/);
+  if (isGetRequest && workspacePathMatch) {
+    const orgSlug = workspacePathMatch[1];
+    const tabName = workspacePathMatch[2];
+    const url = req?.nextUrl?.clone?.();
+    if (url) {
+      url.pathname = `/w/${orgSlug}/system/${tabName}`;
+      return NextResponse.redirect(url, 308);
+    }
+  }
+
+  // Handle malformed concatenated URLs like sales_pipelineleads (missing slash)
+  // Only for GET requests
+  if (isGetRequest && pathname.includes('sales_pipelineleads')) {
+    const url = req?.nextUrl?.clone?.();
+    if (url) {
+      url.pathname = pathname.replace('sales_pipelineleads', 'sales_pipeline/leads');
+      return NextResponse.redirect(url, 308);
+    }
+  }
+
   return NextResponse.next();
 },
 {

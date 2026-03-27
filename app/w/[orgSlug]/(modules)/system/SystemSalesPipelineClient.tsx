@@ -777,104 +777,103 @@ export default function SystemSalesPipelineClient({
         </div>
       </div>
 
-      {/* Lead Capture Settings Banner — admin only */}
-      {isAdmin && <div className="mb-4 flex items-center gap-4 bg-white border border-slate-200 rounded-xl px-3 py-2 shadow-sm overflow-x-auto no-scrollbar">
-        <div className="flex items-center gap-2 shrink-0">
-          <span className="text-[10px] font-black text-slate-500 uppercase">טופס</span>
+      {/* Search + Filter Row — with Lead Capture Toggles integrated */}
+      <div className="grid grid-cols-1 md:flex md:flex-row gap-2 mb-4">
+        <div className="flex-1 flex gap-2 items-center">
+          {isAdmin && (
+            <div className="flex items-center gap-3 bg-white border border-slate-200 rounded-2xl px-3 py-2 shadow-sm shrink-0">
+              <div className="flex items-center gap-1.5 shrink-0">
+                <span className="text-[10px] font-black text-slate-500 uppercase">טופס</span>
+                <button
+                  type="button"
+                  disabled={lcLoading}
+                  onClick={() => void handleToggleLeadCapture()}
+                  dir="ltr"
+                  className={`relative w-7 h-4 rounded-full p-0.5 transition-colors ${lcSettings.leadCaptureEnabled ? 'bg-emerald-500' : 'bg-slate-300'} ${lcLoading ? 'opacity-60' : ''}`}
+                >
+                  <div className={`w-3 h-3 rounded-full bg-white shadow-sm transform transition-transform ${lcSettings.leadCaptureEnabled ? 'translate-x-3' : 'translate-x-0'}`} />
+                </button>
+              </div>
+              
+              {lcSettings.leadCaptureEnabled && (
+                <div className="flex items-center gap-1.5 shrink-0 border-r border-slate-200 pr-3 mr-1">
+                  <span className="text-[10px] font-black text-slate-500 uppercase">מייל</span>
+                  <button
+                    type="button"
+                    disabled={lcLoading}
+                    onClick={() => void handleToggleEmailNotify()}
+                    dir="ltr"
+                    className={`relative w-7 h-4 rounded-full p-0.5 transition-colors ${lcSettings.leadCaptureEmailNotify ? 'bg-emerald-500' : 'bg-slate-300'} ${lcLoading ? 'opacity-60' : ''}`}
+                  >
+                    <div className={`w-3 h-3 rounded-full bg-white shadow-sm transform transition-transform ${lcSettings.leadCaptureEmailNotify ? 'translate-x-3' : 'translate-x-0'}`} />
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+          
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="חיפוש..."
+            className="flex-1 bg-white border border-slate-200 rounded-2xl px-4 py-2.5 text-sm font-bold shadow-sm focus:border-slate-900 transition-all outline-none min-w-0"
+          />
           <button
             type="button"
-            disabled={lcLoading}
-            onClick={() => void handleToggleLeadCapture()}
-            dir="ltr"
-            className={`relative w-8 h-4.5 rounded-full p-0.5 transition-colors ${lcSettings.leadCaptureEnabled ? 'bg-emerald-500' : 'bg-slate-300'} ${lcLoading ? 'opacity-60' : ''}`}
+            onClick={() => setTodayOnly((v) => !v)}
+            className={`px-5 py-2.5 rounded-2xl text-sm font-black border shadow-sm transition-all whitespace-nowrap ${
+              todayOnly ? 'bg-orange-500 text-white border-orange-500' : 'bg-white text-slate-800 border-slate-200 hover:border-slate-300'
+            }`}
           >
-            <div className={`w-3.5 h-3.5 rounded-full bg-white shadow-sm transform transition-transform ${lcSettings.leadCaptureEnabled ? 'translate-x-3.5' : 'translate-x-0'}`} />
+            היום
           </button>
         </div>
-        
-        {lcSettings.leadCaptureEnabled && (
-          <div className="flex items-center gap-4 shrink-0">
-            <div className="w-px h-3.5 bg-slate-200" />
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-black text-slate-500 uppercase">מייל</span>
-              <button
-                type="button"
-                disabled={lcLoading}
-                onClick={() => void handleToggleEmailNotify()}
-                dir="ltr"
-                className={`relative w-8 h-4.5 rounded-full p-0.5 transition-colors ${lcSettings.leadCaptureEmailNotify ? 'bg-emerald-500' : 'bg-slate-300'} ${lcLoading ? 'opacity-60' : ''}`}
-              >
-                <div className={`w-3.5 h-3.5 rounded-full bg-white shadow-sm transform transition-transform ${lcSettings.leadCaptureEmailNotify ? 'translate-x-3.5' : 'translate-x-0'}`} />
-              </button>
-            </div>
-          </div>
-        )}
-      </div>}
 
-        <div className="grid grid-cols-1 md:flex md:flex-row gap-2 mb-4">
-          <div className="flex-1 flex gap-2">
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="חיפוש..."
-              className="flex-1 bg-white border border-slate-200 rounded-2xl px-4 py-2.5 text-sm font-bold shadow-sm focus:border-slate-900 transition-all outline-none"
-            />
-            <button
-              type="button"
-              onClick={() => setTodayOnly((v) => !v)}
-              className={`px-5 py-2.5 rounded-2xl text-sm font-black border shadow-sm transition-all whitespace-nowrap ${
-                todayOnly ? 'bg-orange-500 text-white border-orange-500' : 'bg-white text-slate-800 border-slate-200 hover:border-slate-300'
-              }`}
-            >
-              היום
-            </button>
-          </div>
+        <div className="grid grid-cols-2 md:flex md:flex-row gap-2">
+          <Select
+            value={statusFilter}
+            className="md:w-48 h-full min-h-[44px] rounded-2xl font-bold text-sm border-slate-200"
+            onChange={(e) => {
+              const val = e.target.value;
+              if (val === 'all') {
+                setStatusFilter('all');
+                return;
+              }
+              setStatusFilter(val as PipelineStage);
+            }}
+          >
+            <option value="all">כל הסטטוסים</option>
+            {stagesForUi.map((s) => (
+              <option key={s.key} value={String(s.key)}>{String(s.label)}</option>
+            ))}
+          </Select>
 
-          <div className="grid grid-cols-2 md:flex md:flex-row gap-2">
-            <Select
-              value={statusFilter}
-              className="md:w-48 h-full min-h-[44px] rounded-2xl font-bold text-sm border-slate-200"
-              onChange={(e) => {
-                const val = e.target.value;
-                if (val === 'all') {
-                  setStatusFilter('all');
-                  return;
-                }
-                setStatusFilter(val as PipelineStage);
-              }}
-            >
-              <option value="all">כל הסטטוסים</option>
-              {stagesForUi.map((s) => (
-                <option key={s.key} value={String(s.key)}>{String(s.label)}</option>
-              ))}
-            </Select>
-
-            <Select
-              value={sortKey}
-              className="md:w-48 h-full min-h-[44px] rounded-2xl font-bold text-sm border-slate-200"
-              onChange={(e) => {
-                const val = e.target.value;
-                if (
-                  val === 'created_desc' ||
-                  val === 'created_asc' ||
-                  val === 'value_desc' ||
-                  val === 'value_asc' ||
-                  val === 'name_asc' ||
-                  val === 'name_desc'
-                ) {
-                  setSortKey(val);
-                }
-              }}
-            >
-              <option value="created_desc">חדש ביותר</option>
-              <option value="created_asc">ישן ביותר</option>
-              <option value="value_desc">שווי גבוה</option>
-              <option value="value_asc">שווי נמוך</option>
-              <option value="name_asc">שם (א-ת)</option>
-              <option value="name_desc">שם (ת-א)</option>
-            </Select>
-          </div>
+          <Select
+            value={sortKey}
+            className="md:w-48 h-full min-h-[44px] rounded-2xl font-bold text-sm border-slate-200"
+            onChange={(e) => {
+              const val = e.target.value;
+              if (
+                val === 'created_desc' ||
+                val === 'created_asc' ||
+                val === 'value_desc' ||
+                val === 'value_asc' ||
+                val === 'name_asc' ||
+                val === 'name_desc'
+              ) {
+                setSortKey(val);
+              }
+            }}
+          >
+            <option value="created_desc">חדש ביותר</option>
+            <option value="created_asc">ישן ביותר</option>
+            <option value="value_desc">שווי גבוה</option>
+            <option value="value_asc">שווי נמוך</option>
+            <option value="name_asc">שם (א-ת)</option>
+            <option value="name_desc">שם (ת-א)</option>
+          </Select>
         </div>
+      </div>
 
       <div className="h-[calc(100vh-280px)] md:h-auto md:flex-1 md:min-h-0">
         {viewMode === 'board' ? (

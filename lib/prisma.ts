@@ -196,6 +196,12 @@ type PrismaClientWithAliases = PrismaClient & {
   misradServicePlan: PrismaClient['misradServicePlan'];
   misradServicePhase: PrismaClient['misradServicePhase'];
   misradMeetingTemplate: PrismaClient['misradMeetingTemplate'];
+  // Voicenter Telephony models
+  telephonySubAccount: PrismaClient['telephonySubAccount'];
+  telephonyExtension: PrismaClient['telephonyExtension'];
+  telephonyUsageRecord: PrismaClient['telephonyUsageRecord'];
+  voicenterProvisioningRequest: PrismaClient['voicenterProvisioningRequest'];
+  telephonyMonthlyBilling: PrismaClient['telephonyMonthlyBilling'];
 };
 
 const _basePrismaClient = _client;

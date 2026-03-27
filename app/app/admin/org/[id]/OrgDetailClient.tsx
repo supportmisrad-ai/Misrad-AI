@@ -122,7 +122,7 @@ export default function OrgDetailClient({ data }: { data: OrgDetailResult }) {
       });
       if (res.success) {
         showToast(`מצב שבת: ${newVal ? 'סגור בשבת' : 'פטור רפואי — פעיל בשבת'}`, 'success');
-        router.refresh();
+        window.location.reload();
       } else {
         showToast(res.error || 'שגיאה בעדכון', 'error');
       }
@@ -138,7 +138,7 @@ export default function OrgDetailClient({ data }: { data: OrgDetailResult }) {
       });
       if (res.success) {
         showToast(`סיווג מוסד רפואי ${newVal ? 'הופעל' : 'בוטל'}`, 'success');
-        router.refresh();
+        window.location.reload();
       } else {
         showToast(res.error || 'שגיאה בעדכון', 'error');
       }
@@ -164,7 +164,7 @@ export default function OrgDetailClient({ data }: { data: OrgDetailResult }) {
       });
       if (res.success) {
         showToast(`מודול ${MODULE_LABELS[moduleKey] || moduleKey} ${!currentValue ? 'הופעל' : 'בוטל'}`, 'success');
-        router.refresh();
+        window.location.reload();
       } else {
         showToast(res.error || 'שגיאה בעדכון', 'error');
       }
@@ -243,7 +243,7 @@ export default function OrgDetailClient({ data }: { data: OrgDetailResult }) {
           variant="outline"
           size="sm"
           onClick={() => {
-            startTransition(() => router.refresh());
+            startTransition(() => window.location.reload());
           }}
           disabled={isPending}
         >

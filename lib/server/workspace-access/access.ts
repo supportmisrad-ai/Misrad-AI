@@ -137,6 +137,7 @@ export const requireWorkspaceAccessByOrgSlugCached = cache(async (clerkUserId: s
     subscriptionPlan: org?.subscription_plan ?? null,
     trialEndDate: org?.trial_end_date ?? null,
     entitlements,
+    isSuperAdmin,
   };
 });
 
@@ -212,6 +213,7 @@ export const requireWorkspaceAccessByOrgSlugApiCached = cache(async (clerkUserId
     subscriptionPlan: org?.subscription_plan ?? null,
     trialEndDate: org?.trial_end_date ?? null,
     entitlements,
+    isSuperAdmin,
   };
 });
 

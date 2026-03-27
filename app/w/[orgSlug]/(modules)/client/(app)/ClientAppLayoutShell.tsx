@@ -11,6 +11,7 @@ import { getClientOSClients, getOrganizationSessions } from '@/app/actions/clien
 import ClientOsAppLayoutClient from '@/components/client-os-full/app-router/ClientOsAppLayoutClient';
 import { resolveStorageUrlMaybeServiceRole } from '@/lib/services/operations/storage';
 import { asObject } from '@/lib/shared/unknown';
+import { getRoleLevel } from '@/lib/constants/roles';
 
 /**
  * Async server component that fetches heavy Client data.
@@ -72,7 +73,7 @@ export default async function ClientAppLayoutShell({
   // Resolve the DB user lookup (fired earlier, ran in parallel with the pure computation above)
   const user = await userPromise;
   const role = ((fallbackUser?.role ?? safeRoleFromClerk ?? user?.role ?? null) as string | null) ?? null;
-  const isAdmin = clerkIsSuperAdmin || role === 'admin' || role === 'super_admin' || role === 'owner';
+  const isAdmin = clerkIsSuperAdmin || getRoleLevel(role) <= 4;
 
   const hasClient = Boolean(workspace?.entitlements?.client);
   const canAccess = hasClient || isAdmin;

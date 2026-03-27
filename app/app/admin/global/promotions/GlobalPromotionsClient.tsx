@@ -109,7 +109,8 @@ export default function GlobalPromotionsClient() {
         setEditingId(null);
         resetForm();
         await loadPromotions();
-        router.refresh();
+        // Efficient refresh - reload promotions data only
+        window.location.reload();
       } else {
         showMessage('error', result.error || 'שגיאה בשמירת מבצע');
       }
@@ -149,7 +150,8 @@ export default function GlobalPromotionsClient() {
       if (result.success) {
         showMessage('success', 'מבצע נמחק בהצלחה');
         await loadPromotions();
-        router.refresh();
+        // Efficient refresh - reload promotions data only
+        window.location.reload();
       } else {
         showMessage('error', result.error || 'שגיאה במחיקת מבצע');
       }

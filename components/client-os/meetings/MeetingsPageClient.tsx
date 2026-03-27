@@ -273,7 +273,8 @@ const MeetingsPageClient: React.FC<MeetingsPageClientProps> = ({
         setNewClientName('');
         setNewClientEmail('');
         setNewClientPhone('');
-        router.refresh();
+        // Refresh page to show updated client list
+        window.location.reload();
     } catch (error: unknown) {
         const msg = error instanceof Error ? error.message : 'שגיאה ביצירת לקוח';
         window.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: msg, type: 'error' } }));
@@ -418,7 +419,8 @@ const MeetingsPageClient: React.FC<MeetingsPageClientProps> = ({
 
       window.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: 'פגישה נוצרה בהצלחה', type: 'success' } }));
       setActiveView('LIST');
-      router.refresh(); 
+      // Refresh page to show updated meeting list
+      window.location.reload(); 
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : 'שגיאה ביצירת פגישה';
       window.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: msg, type: 'error' } }));

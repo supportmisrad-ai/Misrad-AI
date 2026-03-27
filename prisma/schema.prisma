@@ -3055,6 +3055,14 @@ model Organization {
   operations_locations        operations_locations[]
   operations_work_order_types operations_work_order_types[]
 
+  // קשרי Voicenter Telephony
+  telephonySubAccounts                   TelephonySubAccount[]
+  telephonyExtensions                    TelephonyExtension[]
+  telephonyUsageRecords                  TelephonyUsageRecord[]
+  
+  // Email Broadcast System
+  emailBroadcasts                        EmailBroadcast[]
+
   @@index([owner_id])
   @@index([partnerId])
   @@map("organizations")
@@ -6314,4 +6322,450 @@ model AiChatMessage {
 
   @@index([session_id])
   @@map("ai_chat_messages")
+}
+
+// ============================================================================
+// Voicenter Telephony Module - ENUM Definitions
+// ============================================================================
+
+enum TelephonyAccountStatus {
+  active
+  suspended
+  cancelled
+  pending
+  trial
+}
+
+enum TelephonyExtensionStatus {
+  active
+  inactive
+  busy
+  offline
+  dnd
+}
+
+enum TelephonyExtensionType {
+  user
+  ivr
+  queue
+  conference
+  fax
+  voicemail
+}
+
+enum TelephonyProvisioningStatus {
+  pending
+  in_progress
+  completed
+  failed
+  rollback
+}
+
+enum TelephonyBillingCycle {
+  monthly
+  quarterly
+  yearly
+}
+
+enum TelephonyCallDirection {
+  inbound
+  outbound
+  internal
+}
+
+enum TelephonyCallStatus {
+  answered
+  missed
+  voicemail
+  busy
+  failed
+  no_answer
+}
+
+// ============================================================================
+// Voicenter Telephony Module - Core Models
+// ============================================================================
+
+/// Telephony Sub-Account - Represents a Voicenter sub-account under our reseller
+/// Each organization can have one telephony sub-account
+model TelephonySubAccount {
+  id                      String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  voicenter_account_id    String                @unique @map("voicenter_account_id")
+  organization_id         String                @db.Uuid
+  organization_slug       String                @map("organization_slug")
+
+  // Account Details
+  account_name            String                @map("account_name")
+  account_number          String                @unique @map("account_number")
+  reseller_id             String                @map("reseller_id")
+
+  // Status & Lifecycle
+  status                  TelephonyAccountStatus @default(pending)
+  trial_ends_at           DateTime?             @map("trial_ends_at") @db.Timestamptz(6)
+  created_at              DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  updated_at              DateTime              @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Billing Configuration
+  billing_cycle           TelephonyBillingCycle @default(monthly) @map("billing_cycle")
+  monthly_plan_fee        Decimal               @default(0) @map("monthly_plan_fee") @db.Decimal(10, 2)
+  markup_percentage       Decimal               @default(20.00) @map("markup_percentage") @db.Decimal(5, 2)
+
+  // Voicenter Credentials (these should be encrypted in application layer)
+  api_token               String?               @map("api_token")
+  web_token               String?               @map("web_token")
+
+  // Configuration
+  max_extensions          Int                   @default(10) @map("max_extensions")
+  current_extensions      Int                   @default(0) @map("current_extensions")
+
+  // CDR & Webhook Settings
+  cdr_webhook_url         String?               @map("cdr_webhook_url")
+  screen_pop_enabled      Boolean               @default(true) @map("screen_pop_enabled")
+
+  // Metadata
+  metadata                Json?
+  notes                   String?
+
+  // Relations
+  organization            Organization          @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  extensions              TelephonyExtension[]
+  usage_records           TelephonyUsageRecord[]
+  provisioning_requests   VoicenterProvisioningRequest[]
+  monthly_billings        TelephonyMonthlyBilling[]
+
+  @@index([organization_id], map: "telephony_sub_accounts_org_idx")
+  @@index([status], map: "telephony_sub_accounts_status_idx")
+  @@index([created_at], map: "telephony_sub_accounts_created_idx")
+  @@index([organization_slug], map: "telephony_sub_accounts_slug_idx")
+  @@map("telephony_sub_accounts")
+}
+
+/// Telephony Extension - Represents an individual extension (שלוחה) within a sub-account
+model TelephonyExtension {
+  id                      String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sub_account_id          String                 @map("sub_account_id") @db.Uuid
+  organization_id         String                 @db.Uuid
+
+  // Extension Details
+  extension_number        String                 @map("extension_number")
+  extension_name          String                 @map("extension_name")
+  extension_type          TelephonyExtensionType @default(user) @map("extension_type")
+
+  // Voicenter Integration
+  voicenter_extension_id  String                 @map("voicenter_extension_id")
+  voicenter_user_id       String?                @map("voicenter_user_id")
+
+  // User Association (optional)
+  assigned_user_id        String?                @map("assigned_user_id") @db.Uuid
+  assigned_user_name      String?                @map("assigned_user_name")
+  assigned_user_email     String?                @map("assigned_user_email")
+
+  // SIP/Registration (encrypted)
+  sip_username            String?                @map("sip_username")
+  sip_password            String?                @map("sip_password")
+  sip_server              String?                @map("sip_server")
+
+  // Status
+  status                  TelephonyExtensionStatus @default(inactive)
+  is_registered           Boolean                @default(false) @map("is_registered")
+  last_registered_at      DateTime?              @map("last_registered_at") @db.Timestamptz(6)
+
+  // Call Handling
+  forward_number          String?                @map("forward_number")
+  voicemail_enabled       Boolean                @default(true) @map("voicemail_enabled")
+  voicemail_pin           String?                @map("voicemail_pin")
+
+  // Provisioning
+  provisioned_at          DateTime?              @map("provisioned_at") @db.Timestamptz(6)
+  provisioned_by          String?                @map("provisioned_by") @db.Uuid
+
+  // Device Info
+  device_type             String?
+  device_model            String?
+
+  // Timestamps
+  created_at              DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
+  updated_at              DateTime               @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Relations
+  sub_account             TelephonySubAccount  @relation(fields: [sub_account_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organization            Organization           @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  usageRecords            TelephonyUsageRecord[]
+
+  @@unique([sub_account_id, extension_number], map: "telephony_extensions_unique_number")
+  @@index([sub_account_id], map: "telephony_extensions_sub_account_idx")
+  @@index([organization_id], map: "telephony_extensions_org_idx")
+  @@index([status], map: "telephony_extensions_status_idx")
+  @@index([assigned_user_id], map: "telephony_extensions_user_idx")
+  @@index([voicenter_extension_id], map: "telephony_extensions_vc_ext_idx")
+  @@map("telephony_extensions")
+}
+
+/// Telephony Usage Record - CDR (Call Detail Records) and usage tracking
+model TelephonyUsageRecord {
+  id                      String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sub_account_id          String              @map("sub_account_id") @db.Uuid
+  organization_id         String              @db.Uuid
+  extension_id            String?             @db.Uuid
+
+  // Call Details (CDR)
+  call_id                 String              @unique @map("call_id")
+  session_id              String?             @map("session_id")
+
+  // Participants
+  caller_number           String              @map("caller_number")
+  caller_name             String?
+  callee_number           String              @map("callee_number")
+  callee_name             String?
+
+  // Call Metadata
+  direction               TelephonyCallDirection
+  status                  TelephonyCallStatus
+  started_at              DateTime            @map("started_at") @db.Timestamptz(6)
+  answered_at             DateTime?           @map("answered_at") @db.Timestamptz(6)
+  ended_at                DateTime?           @map("ended_at") @db.Timestamptz(6)
+
+  // Duration
+  duration_seconds        Int                 @default(0) @map("duration_seconds")
+  talk_time_seconds       Int                 @default(0) @map("talk_time_seconds")
+  ring_time_seconds       Int                 @default(0) @map("ring_time_seconds")
+
+  // Recording
+  recording_url           String?
+  recording_duration      Int?                @map("recording_duration")
+
+  // Cost & Billing
+  cost_per_minute         Decimal             @default(0) @map("cost_per_minute") @db.Decimal(10, 4)
+  markup_percentage       Decimal             @default(20.00) @map("markup_percentage") @db.Decimal(5, 2)
+  billed_amount           Decimal             @default(0) @map("billed_amount") @db.Decimal(10, 4)
+  currency                String              @default("ILS")
+
+  // Disposition
+  disposition             String?
+  hangup_cause            String?             @map("hangup_cause")
+
+  // AI Analysis
+  analyzed_by_ai          Boolean             @default(false) @map("analyzed_by_ai")
+  ai_sentiment            String?             @map("ai_sentiment")
+  ai_notes                String?             @map("ai_notes")
+
+  // Raw CDR Data
+  raw_cdr_data            Json?               @map("raw_cdr_data")
+
+  // Timestamp
+  created_at              DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  // Relations
+  sub_account             TelephonySubAccount @relation(fields: [sub_account_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organization            Organization        @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  extension               TelephonyExtension? @relation(fields: [extension_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+
+  @@index([sub_account_id], map: "telephony_usage_sub_account_idx")
+  @@index([organization_id], map: "telephony_usage_org_idx")
+  @@index([extension_id], map: "telephony_usage_ext_idx")
+  @@index([started_at], map: "telephony_usage_started_idx")
+  @@index([direction], map: "telephony_usage_direction_idx")
+  @@index([call_id], map: "telephony_usage_call_id_idx")
+  @@index([sub_account_id, started_at], map: "telephony_usage_sub_account_date_idx")
+  @@map("telephony_usage_records")
+}
+
+/// Voicenter Provisioning Request - Tracks API requests to Voicenter BSS
+model VoicenterProvisioningRequest {
+  id                      String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sub_account_id          String                    @map("sub_account_id") @db.Uuid
+
+  // Request Details
+  request_type            String                    @map("request_type")
+  payload                 Json
+
+  // Status Tracking
+  status                  TelephonyProvisioningStatus @default(pending)
+  attempts                Int                       @default(0)
+  max_attempts            Int                       @default(3)
+
+  // Voicenter Response
+  voicenter_request_id    String?                   @map("voicenter_request_id")
+  voicenter_response      Json?                     @map("voicenter_response")
+  error_message           String?                   @map("error_message")
+
+  // Retry Logic
+  next_attempt_at         DateTime?                 @map("next_attempt_at") @db.Timestamptz(6)
+
+  // Timestamps
+  created_at              DateTime                  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updated_at              DateTime                  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  completed_at            DateTime?                 @map("completed_at") @db.Timestamptz(6)
+
+  // Relations
+  sub_account             TelephonySubAccount       @relation(fields: [sub_account_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([sub_account_id], map: "voicenter_prov_sub_account_idx")
+  @@index([status], map: "voicenter_prov_status_idx")
+  @@index([created_at], map: "voicenter_prov_created_idx")
+  @@index([next_attempt_at], map: "voicenter_prov_next_attempt_idx")
+  @@map("voicenter_provisioning_requests")
+}
+
+/// Telephony Monthly Billing - Aggregated billing per sub-account per month
+model TelephonyMonthlyBilling {
+  id                      String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sub_account_id          String              @map("sub_account_id") @db.Uuid
+  organization_id         String              @db.Uuid
+  billing_period          String              @map("billing_period")
+
+  // Usage Summary
+  total_calls             Int                 @default(0) @map("total_calls")
+  total_duration          Int                 @default(0) @map("total_duration")
+  total_inbound           Int                 @default(0) @map("total_inbound")
+  total_outbound          Int                 @default(0) @map("total_outbound")
+
+  // Charges
+  base_plan_fee           Decimal             @default(0) @map("base_plan_fee") @db.Decimal(10, 2)
+  usage_charges           Decimal             @default(0) @map("usage_charges") @db.Decimal(10, 2)
+  markup_amount           Decimal             @default(0) @map("markup_amount") @db.Decimal(10, 2)
+  total_amount            Decimal             @default(0) @map("total_amount") @db.Decimal(10, 2)
+
+  // Status
+  invoiced                Boolean             @default(false)
+  invoice_id              String?             @map("invoice_id")
+  paid                    Boolean             @default(false)
+  paid_at                 DateTime?           @map("paid_at") @db.Timestamptz(6)
+
+  // Timestamps
+  created_at              DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  updated_at              DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Relations
+  sub_account             TelephonySubAccount @relation(fields: [sub_account_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+/// Email Broadcast System - Multi-recipient email campaigns
+/// Tracks broadcast emails sent to filtered user groups with full audit trail
+model EmailBroadcast {
+  id                    String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id       String                @db.Uuid
+  
+  // Content
+  subject               String
+  body_html             String                @db.Text
+  body_text             String?               @db.Text
+  
+  // Sender Configuration
+  from_name             String                @default("MISRAD AI")
+  from_email            String                @default("newsletter@misrad-ai.com")
+  reply_to              String?
+  
+  // Recipient Filters (JSON for flexibility)
+  recipient_filter      Json                  @default("{}")
+  /// filter structure: { roles: ['admin', 'owner'], plans: ['the_empire'], modules: ['nexus'], isActive: true }
+  
+  // Target Stats (calculated before send)
+  target_count          Int                   @default(0)
+  
+  // Send Status
+  status                EmailBroadcastStatus  @default(DRAFT)
+  scheduled_at          DateTime?             @db.Timestamptz(6)
+  sent_at               DateTime?             @db.Timestamptz(6)
+  
+  // Send Results
+  sent_count            Int                   @default(0)
+  delivered_count       Int                   @default(0)
+  failed_count          Int                   @default(0)
+  opened_count          Int                   @default(0)
+  clicked_count         Int                   @default(0)
+  bounced_count         Int                   @default(0)
+  unsubscribed_count    Int                   @default(0)
+  
+  // Metadata
+  created_by            String                @db.Uuid
+  created_by_name       String?
+  
+  // Legal/Compliance
+  respect_preferences   Boolean               @default(true)
+  include_unsubscribe   Boolean               @default(true)
+  legal_category        String                @default("marketing") // marketing, legal, system
+  
+  // Error Tracking
+  error_log             Json?                 @default("[]")
+  
+  // Relations
+  organization          Organization          @relation(fields: [organization_id], references: [id], onDelete: Cascade)
+  recipients            EmailBroadcastRecipient[]
+  
+  // Timestamps
+  created_at            DateTime              @default(now()) @db.Timestamptz(6)
+  updated_at            DateTime              @updatedAt @db.Timestamptz(6)
+  
+  @@index([organization_id])
+  @@index([organization_id, status])
+  @@index([organization_id, created_at])
+  @@index([status, scheduled_at])
+  @@index([legal_category])
+  @@map("email_broadcasts")
+}
+
+/// Individual recipient tracking for broadcast emails
+model EmailBroadcastRecipient {
+  id                    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  broadcast_id          String    @db.Uuid
+  organization_id         String    @db.Uuid
+  
+  // Recipient Info
+  user_id               String    @db.Uuid
+  user_email            String
+  user_name             String?
+  
+  // Send Status
+  status                EmailRecipientStatus @default(PENDING)
+  
+  // Resend Tracking
+  resend_message_id     String?
+  
+  // Engagement Tracking
+  sent_at               DateTime? @db.Timestamptz(6)
+  delivered_at          DateTime? @db.Timestamptz(6)
+  opened_at             DateTime? @db.Timestamptz(6)
+  clicked_at            DateTime? @db.Timestamptz(6)
+  bounced_at            DateTime? @db.Timestamptz(6)
+  unsubscribed_at       DateTime? @db.Timestamptz(6)
+  
+  // Error Info
+  error_message         String?
+  
+  // Relations
+  broadcast             EmailBroadcast @relation(fields: [broadcast_id], references: [id], onDelete: Cascade)
+  
+  // Timestamps
+  created_at            DateTime   @default(now()) @db.Timestamptz(6)
+  updated_at            DateTime   @updatedAt @db.Timestamptz(6)
+  
+  @@unique([broadcast_id, user_id])
+  @@index([broadcast_id])
+  @@index([organization_id])
+  @@index([status])
+  @@index([user_email])
+  @@map("email_broadcast_recipients")
+}
+
+enum EmailBroadcastStatus {
+  DRAFT       // Still being edited
+  SCHEDULED   // Scheduled for future send
+  SENDING     // Currently in progress
+  SENT        // Successfully sent to all recipients
+  FAILED      // Failed to send
+  CANCELLED   // Cancelled before send
+}
+
+enum EmailRecipientStatus {
+  PENDING     // Waiting to be sent
+  QUEUED      // In sending queue
+  SENDING     // Currently being sent
+  SENT        // API call succeeded
+  DELIVERED   // Resend confirmed delivery
+  OPENED      // Recipient opened email
+  CLICKED     // Recipient clicked link
+  BOUNCED     // Email bounced
+  FAILED      // Send failed
+  UNSUBSCRIBED // User unsubscribed
+  SKIPPED     // Skipped due to preferences
 }

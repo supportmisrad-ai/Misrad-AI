@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { LifeBuoy } from 'lucide-react';
 
 import { asObject, getErrorMessage } from '@/lib/shared/unknown';
+import { getRoleLevel } from '@/lib/constants/roles';
 
 function unwrapData(value: unknown): unknown {
   const obj = asObject(value);
@@ -177,10 +178,11 @@ export function SupportTicketDetailClient(props: { orgSlug: string; ticketId: st
 
       if (ev.action === 'COMMENT') {
         const role = getStringMeta(md, 'role').toLowerCase();
-        const roleHe = role === 'admin' ? 'צוות' : role === 'customer' ? 'מדווח' : 'משתמש';
+        const isStaff = getRoleLevel(role) <= 5;
+        const roleHe = isStaff ? 'צוות' : role === 'customer' ? 'מדווח' : 'משתמש';
         return {
           id: ev.id,
-          dot: role === 'admin' ? 'bg-emerald-600' : 'bg-slate-900',
+          dot: isStaff ? 'bg-emerald-600' : 'bg-slate-900',
           title: `${roleHe}: ${actor}`,
           subtitle: when,
           content: String(ev.content || ''),

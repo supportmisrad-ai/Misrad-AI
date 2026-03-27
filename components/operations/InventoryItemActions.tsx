@@ -45,7 +45,7 @@ export function InventoryItemActions({
     if (res.success) {
       setEditing(false);
       toast('פריט עודכן בהצלחה', 'success');
-      router.refresh();
+      window.location.reload();
     } else {
       toast(res.error || 'שגיאה בעדכון פריט', 'error');
     }
@@ -58,7 +58,7 @@ export function InventoryItemActions({
     if (res.success) {
       setConfirmDelete(false);
       toast('פריט נמחק בהצלחה', 'success');
-      router.refresh();
+      window.location.reload();
     } else {
       toast(res.error || 'שגיאה במחיקת פריט', 'error');
     }

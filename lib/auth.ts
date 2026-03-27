@@ -586,3 +586,102 @@ export async function filterSensitiveData<T extends object>(
     return data;
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// Unified Management Role Authorization (Israeli Organizational Hierarchy)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export interface ManagementAuthResult {
+    authorized: boolean;
+    userId: string | null;
+    role: string | null;
+    roleLevel: number;
+    error?: string;
+}
+
+/**
+ * Check if current user has management role (Manager level 4 and above)
+ * Based on Israeli organizational hierarchy: CEO -> VP -> Director -> Manager
+ * 
+ * Level 1: מנכ״ל
+ * Level 2: סמנכ״ל  
+ * Level 3: מנהל בכיר / ראש מחלקה
+ * Level 4: מנהל ← minimum for management access
+ * Level 5+: ראש צוות, עובדים, פרילנסרים
+ */
+export async function requireManagementRole(
+    clerkUserId?: string | null,
+    organizationId?: string
+): Promise<ManagementAuthResult> {
+    const userId = clerkUserId ?? (await auth()).userId;
+    
+    if (!userId) {
+        return { authorized: false, userId: null, role: null, roleLevel: 9, error: 'Unauthorized' };
+    }
+
+    try {
+        const orgUser = await prisma.organizationUser.findUnique({
+            where: { clerk_user_id: userId },
+            select: { id: true, role: true, organization_id: true },
+        });
+
+        if (!orgUser) {
+            return { authorized: false, userId, role: null, roleLevel: 9, error: 'User not found in organization' };
+        }
+
+        // Optionally verify organization match
+        if (organizationId && orgUser.organization_id !== organizationId) {
+            return { authorized: false, userId, role: null, roleLevel: 9, error: 'Organization mismatch' };
+        }
+
+        const role = String(orgUser.role || '');
+        const roleLevel = getRoleLevel(role);
+        const authorized = roleLevel <= 4; // Manager and above
+
+        return { authorized, userId, role, roleLevel };
+    } catch (error) {
+        return { authorized: false, userId, role: null, roleLevel: 9, error: getErrorMessage(error) };
+    }
+}
+
+/**
+ * Assert management role - throws if not authorized
+ */
+export async function assertManagementRole(
+    clerkUserId?: string | null,
+    organizationId?: string
+): Promise<{ userId: string; role: string; roleLevel: number }> {
+    const result = await requireManagementRole(clerkUserId, organizationId);
+    
+    if (!result.authorized) {
+        throw new Error(result.error || 'Forbidden: Manager role or above required');
+    }
+    
+    return { 
+        userId: result.userId!, 
+        role: result.role!, 
+        roleLevel: result.roleLevel 
+    };
+}
+
+/**
+ * Check if user can manage specific lead (manager OR assigned agent)
+ */
+export async function canManageLead(
+    clerkUserId: string,
+    leadAssignedAgentId?: string | null
+): Promise<boolean> {
+    const result = await requireManagementRole(clerkUserId);
+    if (result.authorized) return true;
+    
+    // Check if user is the assigned agent
+    if (leadAssignedAgentId && result.userId) {
+        const orgUser = await prisma.organizationUser.findUnique({
+            where: { clerk_user_id: clerkUserId },
+            select: { id: true },
+        });
+        if (orgUser?.id === leadAssignedAgentId) return true;
+    }
+    
+    return false;
+}
+

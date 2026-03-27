@@ -100,7 +100,7 @@ function KioskScanPageClient() {
           } else {
             router.push('/kiosk-home');
           }
-          router.refresh();
+          window.location.reload();
           return;
         }
 

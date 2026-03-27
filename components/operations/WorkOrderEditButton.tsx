@@ -51,7 +51,7 @@ export default function WorkOrderEditButton({
     if (res.success) {
       setOpen(false);
       toast('קריאה עודכנה בהצלחה', 'success');
-      router.refresh();
+      window.location.reload();
     } else {
       setError(res.error || 'שגיאה בעדכון');
     }

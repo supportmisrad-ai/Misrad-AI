@@ -11,6 +11,7 @@ import React, { createContext, useContext, ReactNode } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { UserProfile, UserRole } from '../types';
 import { useAuth as useNexusAuth } from '@/hooks/useAuth';
+import { isTenantAdminRole } from '@/lib/constants/roles';
 
 type User = { id?: string; name?: string; email?: string; role?: string; avatar?: string } | undefined;
 
@@ -97,8 +98,8 @@ export const AuthProvider: React.FC<{ children: ReactNode; initialCurrentUser?: 
     if (isSuperAdmin) return true;
     // Tenant admins have most permissions (except system management)
     if (isTenantAdmin && permission !== 'manage_system') return true;
-    // Check role-based permissions (basic implementation)
-    if ((user.role as unknown as string) === 'admin') return true;
+    // Check role-based permissions using proper role hierarchy
+    if (isTenantAdminRole(user.role as unknown as string)) return true;
     // Add more permission logic here as needed
     return false;
   };

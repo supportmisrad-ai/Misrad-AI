@@ -134,7 +134,14 @@ function SystemShellGateClientCore({
     const prefetchAll = () => {
       const items = NAV_ITEMS;
       items.forEach((item) => {
-        const href = `${basePath}${item.id === 'workspace' ? '' : `/${item.id}`}`;
+        const safePath = item.id === 'workspace' ? '' : `/${item.id}`;
+        const href = `${basePath}${safePath}`;
+        
+        // Debug log for prefetch issues
+        if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+          console.log('[Prefetch] Prefetching:', href);
+        }
+        
         router.prefetch(href);
       });
     };
@@ -165,7 +172,15 @@ function SystemShellGateClientCore({
 
   // Full navigation callback for programmatic nav (MobileBottomNav, etc.)
   const onNavigateAction = useCallback((path: string) => {
-    const href = `${basePath}${path === '/' ? '' : path}`;
+    // Safeguard: ensure path starts with '/' and properly construct the URL
+    const safePath = path === '/' ? '' : path.startsWith('/') ? path : `/${path}`;
+    const href = `${basePath}${safePath}`;
+    
+    // Debug log for navigation issues (can be removed in production)
+    if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+      console.log('[Navigation] Navigating to:', href, { basePath, path, safePath });
+    }
+    
     startTransition(() => router.push(href));
     setIsMobileMenuOpen(false);
     setIsPlusFanOpen(false);

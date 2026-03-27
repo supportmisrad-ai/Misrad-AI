@@ -36,6 +36,7 @@ export type WorkspaceInfo = {
   subscriptionPlan: string | null;
   trialEndDate: Date | null;
   entitlements: Record<OSModuleKey, boolean>;
+  isSuperAdmin?: boolean;
 };
 
 export type WorkspaceInfoWithPackage = WorkspaceInfo & {
@@ -419,6 +420,12 @@ export async function enforceModuleAccessOrRedirect({
   }
 
   // Slow path: module not in entitlements — check if user is super admin
+  // Use isSuperAdmin from workspace if available (already resolved during access check)
+  if (workspace.isSuperAdmin) {
+    return workspace;
+  }
+
+  // Fallback: resolve super admin status if not preloaded (should not happen with cached function)
   const clerkUserId = await requireClerkUserId();
   let isSuperAdmin = false;
   try {

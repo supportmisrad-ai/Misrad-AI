@@ -104,7 +104,7 @@ export default function ProjectDetailClient({
       if (result.success) {
         setEditing(false);
         toast('פרויקט עודכן בהצלחה', 'success');
-        router.refresh();
+        window.location.reload();
       } else {
         setError(result.error ?? 'שגיאה בעדכון');
       }

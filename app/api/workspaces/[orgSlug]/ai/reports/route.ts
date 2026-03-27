@@ -5,6 +5,7 @@ import { getCurrentUserId } from '@/lib/server/authHelper';
 import { APIError, getWorkspaceContextOrThrow } from '@/lib/server/api-workspace';
 import prisma, { queryRawOrgScoped } from '@/lib/prisma';
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+import { getRoleLevel } from '@/lib/constants/roles';
 
 export const runtime = 'nodejs';
 
@@ -38,12 +39,13 @@ async function GETHandler(
     const limitParam = Math.min(Math.max(Number(url.searchParams.get('limit')) || 10, 1), 50);
     const typeFilter = url.searchParams.get('type') || null;
 
-    // Check admin permissions via user metadata
+    // Check admin permissions via user metadata using role hierarchy
     const orgMemberships = (user as Record<string, unknown>)?.organizationMemberships;
     const isAdmin = Array.isArray(orgMemberships) && orgMemberships.some(
       (m: unknown) => {
         const mem = m as Record<string, unknown>;
-        return String(mem?.role) === 'admin' || String(mem?.role) === 'org:admin';
+        const role = String(mem?.role || '');
+        return getRoleLevel(role) <= 4;
       }
     );
 

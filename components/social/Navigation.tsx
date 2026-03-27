@@ -130,6 +130,7 @@ function NavigationImpl({
       <Link
         href={href}
         scroll={false}
+        prefetch={true}
         className={`
           group relative flex items-center gap-4 p-3.5 rounded-2xl font-black text-sm transition-all duration-200 w-full
           ${isActive

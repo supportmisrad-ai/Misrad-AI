@@ -17,6 +17,7 @@ export type WorkspaceInfo = {
   subscriptionPlan: string | null;
   trialEndDate: Date | null;
   entitlements: WorkspaceEntitlements;
+  isSuperAdmin?: boolean;
 };
 
 export type WorkspaceInfoWithPackage = WorkspaceInfo & {

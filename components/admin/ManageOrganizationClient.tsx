@@ -1850,7 +1850,8 @@ export default function ManageOrganizationClient({ initialData }: { initialData:
           onSuccess={() => {
             setShowApplyCouponModal(false);
             showMessage('success', 'קופון הוחל בהצלחה!');
-            router.refresh();
+            // Full reload to refresh organization data efficiently
+            window.location.reload();
           }}
         />
       )}

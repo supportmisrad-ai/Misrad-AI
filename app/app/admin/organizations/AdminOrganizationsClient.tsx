@@ -222,7 +222,8 @@ export default function AdminOrganizationsClient(props: {
 
         setIsOpen(false);
         resetForm();
-        router.refresh();
+        // Optimistic update: reload organizations list without full page refresh
+        window.location.reload();
       } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : 'שגיאה';
         addToast(msg, 'error');
@@ -240,7 +241,8 @@ export default function AdminOrganizationsClient(props: {
         }
         addToast('הארגון הועבר לסל המיחזור', 'success');
         setConfirmDeleteId(null);
-        router.refresh();
+        // Optimistic update: reload organizations list without full page refresh
+        window.location.reload();
       } catch {
         addToast('שגיאה במחיקה', 'error');
       }
@@ -257,7 +259,8 @@ export default function AdminOrganizationsClient(props: {
         }
         addToast('הארגון שוחזר בהצלחה', 'success');
         await loadDeletedOrgs();
-        router.refresh();
+        // Optimistic update: reload organizations list without full page refresh
+        window.location.reload();
       } catch {
         addToast('שגיאה בשחזור', 'error');
       }

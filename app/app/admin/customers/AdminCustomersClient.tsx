@@ -207,7 +207,7 @@ export default function AdminCustomersClient(props: { groups: CustomerOwnerGroup
               <Button size="sm" onClick={() => router.push('/app/admin/organizations?new=1')}>
                 הוסף לקוח חדש
               </Button>
-              <Button variant="outline" size="sm" onClick={() => router.refresh()}>
+              <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
                 <RefreshCw size={16} />
                 רענון
               </Button>

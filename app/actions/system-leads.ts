@@ -4,12 +4,14 @@ import { revalidatePath } from 'next/cache';
 import { logger } from '@/lib/server/logger';
 import prisma from '@/lib/prisma';
 import { createClientForWorkspace } from '@/app/actions/clients';
+import { getRoleLevel } from '@/lib/constants/roles';
 import { auth } from '@clerk/nextjs/server';
 import { requireOrganizationId } from '@/lib/tenant-isolation';
 import { Prisma } from '@prisma/client';
 import type { SystemCalendarEvent, SystemLead, SystemLeadActivity } from '@prisma/client';
 import type { Client } from '@/types/social';
 import { withWorkspaceTenantContext } from '@/lib/server/workspace-tenant-context';
+import { requireManagementRole, canManageLead } from '@/lib/auth';
 
 import { asObjectLoose as asObject, getUnknownErrorMessage } from '@/lib/shared/unknown';
 import { insertMisradNotificationsForOrganizationId } from '@/lib/services/system/notifications';
@@ -294,8 +296,8 @@ export async function getSystemLeadsPage(params: {
       });
       if (orgUser) {
         currentNexusUserId = orgUser.id;
-        const role = String(orgUser.role || '').toLowerCase();
-        if (['super_admin', 'admin', 'owner'].includes(role)) {
+        const role = String(orgUser.role || '').trim();
+        if (getRoleLevel(role) <= 4) {
           userRole = 'admin';
         }
       }
@@ -821,6 +823,30 @@ export async function getSystemLeadAssignees(params: {
   );
 }
 
+// Helper: check if user can manage leads (manager level or assigned agent)
+async function canManageLeads(clerkUserId: string, leadAssignedAgentId?: string | null): Promise<boolean> {
+  const orgUser = await prisma.organizationUser.findUnique({
+    where: { clerk_user_id: clerkUserId },
+    select: { id: true, role: true },
+  });
+  if (!orgUser) return false;
+  const role = String(orgUser.role || '').trim();
+  // Manager level (4) or above can manage all leads
+  if (getRoleLevel(role) <= 4) return true;
+  // Assigned agent can manage their own leads
+  if (leadAssignedAgentId && orgUser.id === leadAssignedAgentId) return true;
+  return false;
+}
+
+// Helper: check if user can view leads (anyone in the org)
+async function canViewLeads(clerkUserId: string): Promise<boolean> {
+  const orgUser = await prisma.organizationUser.findUnique({
+    where: { clerk_user_id: clerkUserId },
+    select: { id: true },
+  });
+  return Boolean(orgUser);
+}
+
 export async function updateSystemLead(params: {
   orgSlug: string;
   leadId: string;
@@ -840,6 +866,17 @@ export async function updateSystemLead(params: {
     return await withWorkspaceTenantContext(
       orgSlug,
       async ({ organizationId }) => {
+        // Permission check: Manager+ OR assigned agent can update
+        const { userId: clerkUserId } = await auth();
+        const leadRow = await prisma.systemLead.findFirst({
+          where: { id: leadId, organizationId },
+          select: { assignedAgentId: true },
+        });
+        const hasPermission = await canManageLead(clerkUserId ?? '', leadRow?.assignedAgentId ?? null);
+        if (!hasPermission) {
+          return { ok: false, message: 'אין הרשאה לעדכן ליד זה' };
+        }
+
         const data: Prisma.SystemLeadUpdateManyMutationInput = {};
 
         if (params.name !== undefined) {
@@ -1007,6 +1044,17 @@ export async function createSystemLeadActivity(params: {
       orgSlug,
       async ({ organizationId }) => {
         requireOrganizationId('createSystemLeadActivity', organizationId);
+
+        // Permission check: Manager+ OR assigned agent can add activity
+        const { userId: clerkUserId } = await auth();
+        const leadRow = await prisma.systemLead.findFirst({
+          where: { id: leadId, organizationId },
+          select: { assignedAgentId: true },
+        });
+        const hasPermission = await canManageLead(clerkUserId ?? '', leadRow?.assignedAgentId ?? null);
+        if (!hasPermission) {
+          return { ok: false, message: 'אין הרשאה להוסיף פעילות לליד זה' };
+        }
 
         const now = new Date();
         const existing = await prisma.systemLead.findFirst({
@@ -1228,6 +1276,29 @@ export async function updateSystemLeadStatus(params: {
   const { userId: clerkUserId } = await auth();
   if (!clerkUserId) {
     throw new Error('Unauthorized');
+  }
+
+  // Permission check: Manager+ OR assigned agent can change status
+  const authResult = await requireManagementRole(clerkUserId);
+  let hasPermission = authResult.authorized;
+  
+  if (!hasPermission) {
+    // Check if user is assigned agent
+    const orgUser = await prisma.organizationUser.findUnique({
+      where: { clerk_user_id: clerkUserId },
+      select: { id: true },
+    });
+    const leadRow = await prisma.systemLead.findFirst({
+      where: { id: leadId },
+      select: { assignedAgentId: true, organizationId: true },
+    });
+    if (orgUser?.id && leadRow?.assignedAgentId === orgUser.id) {
+      hasPermission = true;
+    }
+  }
+  
+  if (!hasPermission) {
+    throw new Error('Forbidden: Manager role or above required to change lead status');
   }
 
   return await withWorkspaceTenantContext(

@@ -90,7 +90,7 @@ export default function SettingsClient({
         try {
           await action(formData);
           toast(successMsg, 'success');
-          router.refresh();
+          window.location.reload();
         } catch {
           toast('שגיאה בביצוע הפעולה', 'error');
         } finally {
@@ -98,7 +98,7 @@ export default function SettingsClient({
         }
       };
     },
-    [toast, router],
+    [toast],
   );
 
   return (

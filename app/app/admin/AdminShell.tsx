@@ -51,6 +51,7 @@ function inferAdminAreaFromPathname(pathname: string): AdminArea | null {
   // content
   if (p.startsWith('/app/admin/landing')) return 'content';
   if (p.startsWith('/app/admin/global/emails')) return 'content';
+  if (p.startsWith('/app/admin/global/email-broadcast')) return 'content';
   if (p.startsWith('/app/admin/global/email-assets')) return 'content';
   if (p.startsWith('/app/admin/global/help-videos')) return 'content';
   if (p.startsWith('/app/admin/global/kb-videos')) return 'content';
@@ -254,6 +255,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
       { href: '/app/admin/landing/partners', label: 'שותפים', icon: Handshake },
       { href: '/app/admin/landing/payment-links', label: 'קישורי תשלום', icon: Link2 },
       { href: '/app/admin/global/emails', label: 'רישום מיילים', icon: Mail },
+      { href: '/app/admin/global/email-broadcast', label: 'שליחת מיילים מרובים', icon: Megaphone },
       { href: '/app/admin/global/email-assets', label: 'תמונות מיילים', icon: ImageIcon },
       { href: '/app/admin/global/help-videos', label: 'סרטוני הדרכה', icon: PlayCircle },
       { href: '/app/admin/global/kb-videos', label: 'סרטוני מאגר ידע', icon: GraduationCap },

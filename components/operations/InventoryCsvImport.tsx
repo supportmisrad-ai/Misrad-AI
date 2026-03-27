@@ -78,7 +78,7 @@ export function InventoryCsvImport({ orgSlug }: { orgSlug: string }) {
         setResult({ imported: res.imported });
         setParsed([]);
         setFileName('');
-        router.refresh();
+        window.location.reload();
       } else {
         setResult({ error: res.error || 'שגיאה בייבוא' });
       }

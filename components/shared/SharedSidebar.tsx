@@ -383,7 +383,7 @@ function NavButton({
   );
 
   const resolvedHref = linkHrefPrefix
-    ? `${linkHrefPrefix}${item.path === '/' ? '' : item.path}`
+    ? `${linkHrefPrefix}${item.path === '/' ? '' : item.path.startsWith('/') ? item.path : `/${item.path}`}`
     : undefined;
 
   if (resolvedHref) {

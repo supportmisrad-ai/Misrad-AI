@@ -137,7 +137,7 @@ export default function KioskLoginPage() {
           } else {
             router.push('/kiosk-home');
           }
-          router.refresh();
+          window.location.reload();
           return;
         }
 
