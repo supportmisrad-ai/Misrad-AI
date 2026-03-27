@@ -6638,6 +6638,7 @@ model TelephonyMonthlyBilling {
 
   // Relations
   sub_account             TelephonySubAccount @relation(fields: [sub_account_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
 
 /// Email Broadcast System - Multi-recipient email campaigns
 /// Tracks broadcast emails sent to filtered user groups with full audit trail
