@@ -28,6 +28,9 @@ storageState.json
 
 # misc
 .DS_Store
+.env.migrate
+temp_prod.env
+temp_prod_url.txt
 local.properties
 keystore.properties
 *.jks
