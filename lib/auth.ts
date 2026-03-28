@@ -11,7 +11,7 @@ import { Prisma } from '@prisma/client';
 import { ModuleId, PermissionId, Tenant } from '../types';
 import prisma from '@/lib/prisma';
 import { withPrismaTenantIsolationOverride, withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
-import { ROLE_ADMIN, ROLE_CEO, isTenantAdminRole } from '@/lib/constants/roles';
+import { ROLE_ADMIN, ROLE_CEO, isTenantAdminRole, getRoleLevel } from '@/lib/constants/roles';
 import { ALLOW_SCHEMA_FALLBACKS, isSchemaMismatchError, reportSchemaFallback } from '@/lib/server/schema-fallbacks';
 
 function toStringArray(value: unknown): string[] {
@@ -150,11 +150,54 @@ async function selectTenants(filters?: {
 }
 
 /**
- * Get permissions for a role (from database or fallback)
+ * Get permissions based on role level (Israeli organizational hierarchy)
+ * This ensures ALL roles at management level (4+) automatically get appropriate permissions
+ */
+function getLevelBasedPermissions(roleLevel: number): PermissionId[] {
+    const basePerms: PermissionId[] = ['view_intelligence'];
+    
+    switch (roleLevel) {
+        case 1: // מנכ״ל
+            return [
+                'view_crm', 'view_financials', 'view_intelligence', 'view_assets',
+                'manage_team', 'delete_data', 'manage_system'
+            ];
+        case 2: // סמנכ״ל
+            return [
+                'view_crm', 'view_financials', 'view_intelligence', 'view_assets',
+                'manage_team', 'delete_data'
+            ];
+        case 3: // ראש מחלקה / מנהל בכיר
+            return [
+                'view_crm', 'view_intelligence', 'view_assets',
+                'manage_team'
+            ];
+        case 4: // מנהל ← סף הניהול
+            return [
+                'view_crm', 'view_intelligence', 'view_assets',
+                'manage_team'
+            ];
+        case 5: // ראש צוות
+            return ['view_crm', 'view_intelligence', 'view_assets'];
+        case 6: // עובד בכיר
+            return ['view_crm', 'view_intelligence', 'view_assets'];
+        case 7: // עובד
+            return ['view_intelligence'];
+        case 8: // מתמחה
+            return ['view_intelligence'];
+        case 9: // פרילנסר
+            return [];
+        default:
+            return basePerms;
+    }
+}
+
+/**
+ * Get permissions for a role (from database, level-based hierarchy, or fallback)
  */
 async function getRolePermissions(roleName: string): Promise<PermissionId[]> {
     try {
-        // Try to get from database first
+        // Try to get from database first (admin-configured roles)
         const perms = await selectRolePermissionsByName(roleName);
         if (perms && perms.length > 0) {
             return perms;
@@ -163,12 +206,19 @@ async function getRolePermissions(roleName: string): Promise<PermissionId[]> {
         if (getErrorMessage(error).includes('[SchemaMismatch]')) {
             throw error;
         }
-        console.warn('[Auth] Could not fetch role from database, using fallback:', {
+        console.warn('[Auth] Could not fetch role from database, using level-based:', {
             message: getErrorMessage(error)
         });
     }
     
-    // Fallback to hardcoded permissions
+    // Second priority: level-based permissions (Israeli organizational hierarchy)
+    // This ensures consistent permissions for ALL roles at each level
+    const roleLevel = getRoleLevel(roleName);
+    if (roleLevel <= 7) { // Only apply to recognized hierarchy levels
+        return getLevelBasedPermissions(roleLevel);
+    }
+    
+    // Final fallback: hardcoded permissions by exact role name
     return FALLBACK_ROLE_PERMISSIONS[roleName] || [];
 }
 

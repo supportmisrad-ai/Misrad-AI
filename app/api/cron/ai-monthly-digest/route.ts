@@ -7,6 +7,7 @@ import { Type } from '@google/genai';
 import { cronGuard } from '@/lib/api-cron-guard';
 import { cronConnectionGuard } from '@/lib/api-cron-connection-guard';
 import { asObject } from '@/lib/shared/unknown';
+import { getRoleLevel } from '@/lib/constants/roles';
 import { sendEmail } from '@/lib/email-sender';
 import { generateAiMonthlyReportReadyEmailHTML } from '@/lib/email-generators';
 import { getBaseUrl } from '@/lib/utils';
@@ -282,7 +283,8 @@ async function POSTHandler(req: NextRequest) {
         try {
           const adminMembers = members.filter(m => {
             const role = String(m.role || '').toLowerCase();
-            return role === 'admin' || role === 'ceo' || role === 'owner' || role === 'super_admin';
+            // Management level 4 and above (CEO, VP, Director, Manager)
+            return getRoleLevel(role) <= 4;
           });
 
           if (adminMembers.length > 0) {

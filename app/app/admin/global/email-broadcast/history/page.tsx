@@ -1,7 +1,10 @@
 import React from 'react';
-import BroadcastHistoryClient from './BroadcastHistoryClient';
+import BroadcastHistoryClient from '../BroadcastHistoryClient';
+// Build cache refresh
 
-export const metadata = {
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
   title: 'היסטוריית מיילים | MISRAD AI',
 };
 

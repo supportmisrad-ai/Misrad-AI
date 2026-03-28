@@ -1,6 +1,7 @@
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
 import { resolveWorkspaceCurrentUserForUiWithWorkspaceId } from '@/lib/server/workspaceUser';
 import { resolveStorageUrlMaybeServiceRole } from '@/lib/services/operations/storage';
+import { getRoleLevel } from '@/lib/constants/roles';
 import { currentUser } from '@clerk/nextjs/server';
 import LobbyClient from './LobbyClient';
 
@@ -27,11 +28,23 @@ export default async function LobbyPage({
         const publicMetadata = (clerk?.publicMetadata ?? {}) as Record<string, unknown>;
         const roleValue = publicMetadata.role;
         const isSuperAdmin = publicMetadata.isSuperAdmin === true;
+        
+        // Determine effective role using hierarchy if not super admin
+        let effectiveRole: string;
+        if (isSuperAdmin) {
+          effectiveRole = 'super_admin';
+        } else if (typeof roleValue === 'string' && roleValue) {
+          // Keep original role if it has management level (4+) or higher
+          effectiveRole = getRoleLevel(roleValue) <= 7 ? roleValue : 'עובד';
+        } else {
+          effectiveRole = 'עובד';
+        }
+        
         return {
           id: clerk?.id ?? '',
           profileId: '',
           name,
-          role: isSuperAdmin ? 'super_admin' : (typeof roleValue === 'string' ? roleValue : 'עובד'),
+          role: effectiveRole,
           avatar: clerk?.imageUrl ?? '',
           online: true,
           capacity: 0,

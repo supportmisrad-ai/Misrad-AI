@@ -1,0 +1,3 @@
+DIRECT_URL="postgresql://postgres.jlgoeqhlkxyhlfnijyxu:itsik25AS%4025@aws-1-ap-northeast-2.supabase.com:5432/postgres?sslmode=require\n"
+NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL="/me"
+NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL="/me"

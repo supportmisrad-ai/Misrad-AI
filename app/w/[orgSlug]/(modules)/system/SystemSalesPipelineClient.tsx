@@ -14,6 +14,7 @@ import SmartImportLeadsDialog from '@/components/system/SmartImportLeadsDialog';
 import PipelineBoard from '@/components/system/PipelineBoard';
 import { STAGES } from '@/components/system/constants';
 import { getErrorMessage } from '@/lib/shared/unknown';
+import { getRoleLevel } from '@/lib/constants/roles';
 import {
   getLeadCaptureSettings,
   updateLeadCaptureSettings,
@@ -69,7 +70,7 @@ export default function SystemSalesPipelineClient({
   userRole?: SystemLeadUserRole;
   currentUserId?: string | null;
 }) {
-  const isAdmin = userRole === 'admin';
+  const isAdmin = getRoleLevel(userRole) <= 4; // Management level (Manager and above)
   const { addToast } = useToast();
   const router = useRouter();
   const basePath = useMemo(() => `/w/${encodeURIComponent(orgSlug)}/system`, [orgSlug]);
