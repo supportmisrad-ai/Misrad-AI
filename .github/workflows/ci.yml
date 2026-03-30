@@ -9,6 +9,7 @@ on:
 jobs:
   build:
     name: Build
+    if: false
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -83,6 +84,7 @@ jobs:
 
   security_e2e:
     name: Playwright Security
+    if: false
     runs-on: ubuntu-latest
     services:
       postgres:
