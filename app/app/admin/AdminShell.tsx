@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import type { CommandPaletteNavItem } from '@/components/command-palette/command-palette.types';
 import type { Lead } from '@/types';
 
-type AdminArea = 'customers' | 'users' | 'support' | 'product' | 'content' | 'infra' | 'bot' | 'ai' | 'analytics' | 'telephony';
+type AdminArea = 'customers' | 'users' | 'support' | 'product' | 'content' | 'infra' | 'bot' | 'ai' | 'analytics' | 'telephony' | 'ping';
 const ADMIN_AREA_STORAGE_KEY = 'misrad_admin_area_v2';
 
 function inferAdminAreaFromPathname(pathname: string): AdminArea | null {
@@ -71,6 +71,9 @@ function inferAdminAreaFromPathname(pathname: string): AdminArea | null {
   // telephony
   if (p.startsWith('/app/admin/telephony')) return 'telephony';
 
+  // ping
+  if (p.startsWith('/app/admin/ping')) return 'ping';
+
   // infra
   if (p.startsWith('/app/admin/modules')) return 'infra';
   if (p.startsWith('/app/admin/system-flags')) return 'infra';
@@ -87,7 +90,7 @@ function inferAdminAreaFromPathname(pathname: string): AdminArea | null {
   return null;
 }
 
-const ADMIN_AREAS: AdminArea[] = ['customers', 'users', 'support', 'product', 'content', 'infra', 'bot', 'ai', 'analytics', 'telephony'];
+const ADMIN_AREAS: AdminArea[] = ['customers', 'users', 'support', 'product', 'content', 'infra', 'bot', 'ai', 'analytics', 'telephony', 'ping'];
 
 function isAdminArea(value: unknown): value is AdminArea {
   return ADMIN_AREAS.includes(value as AdminArea);
@@ -104,6 +107,7 @@ const AREA_META: Record<AdminArea, { label: string; description: string }> = {
   ai: { label: 'AI', description: 'ניהול AI · ספקים · מודלים · קרדיטים' },
   analytics: { label: 'אנליטיקס', description: 'אתר · AI · לקוחות · תובנות' },
   telephony: { label: 'טלפוניה', description: 'Voicenter · שלוחות · חיוב · CDR' },
+  ping: { label: 'פינג', description: 'שיחות · בוטים · תקשורת אוטומטית' },
 };
 
 function getAdminAreaLabel(area: AdminArea): string {
@@ -292,6 +296,13 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
       { href: '/app/admin/telephony/usage', label: 'שימוש וחיוב', icon: DollarSign },
       { href: '/app/admin/partners', label: 'שותפים והפניות', icon: Handshake },
     ],
+    ping: [
+      { href: '/app/admin/ping', label: 'דשבורד שיחות', icon: MessageSquare },
+      { href: '/app/admin/ping/shichot', label: 'כל השיחות', icon: MessageSquare },
+      { href: '/app/admin/ping/sheelonim', label: 'שאלונים', icon: Network },
+      { href: '/app/admin/ping/tshuvot', label: 'תשובות מוכנות', icon: Mail },
+      { href: '/app/admin/ping/chiburim', label: 'חיבורים', icon: Globe },
+    ],
   }), [orgSlug]);
 
   const navItems = useMemo<AdminNavItem[]>(() => {
@@ -401,6 +412,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
                       ai: 'bg-indigo-600',
                       analytics: 'bg-amber-600',
                       telephony: 'bg-cyan-600',
+                      ping: 'bg-emerald-600',
                     };
 
                     return (

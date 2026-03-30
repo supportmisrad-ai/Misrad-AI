@@ -6770,3 +6770,196 @@ enum EmailRecipientStatus {
   UNSUBSCRIBED // User unsubscribed
   SKIPPED     // Skipped due to preferences
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// PING MODULE — המערכת שמדברת עם העולם
+// ═══════════════════════════════════════════════════════════════════
+
+model PingShichah {
+  id              String   @id @default(cuid())
+  organizationId  String   @db.Uuid
+  
+  // ערוץ תקשורת
+  arutz           String   // whatsapp, sms, voicenter, email
+  arutzId         String   // מספר טלפון, אימייל, שלוחה
+  
+  // איש קשר
+  sugAishKasher   String   // client | team_member | lead | external
+  aishKasherId    String?  @db.Uuid
+  externalPhone   String?
+  
+  // סטטוס
+  status          String   @default("active") // active, archived, spam
+  adifut          String   @default("normal") // low, normal, high, urgent
+  
+  // AI Context
+  zikaronAI       String?  // זיכרון שיחה
+  
+  // זמנים
+  lastHodaaAt     DateTime @default(now())
+  createdAt       DateTime @default(now())
+  
+  // קשרים
+  hodaot          PingHodaa[]
+  sheelonim       PingSheelon[]
+  
+  @@index([organizationId, arutz])
+  @@index([organizationId, status])
+  @@index([organizationId, lastHodaaAt])
+  @@map("ping_shichot")
+}
+
+model PingHodaa {
+  id              String   @id @default(cuid())
+  shichahId       String
+  
+  // כיוון
+  direction       String   // inbound | outbound
+  senderSug       String   // contact | bot | user | system
+  
+  // תוכן
+  tochen          String   @db.Text
+  sugTochen       String   @default("text") // text, template, media, location
+  
+  // מדיה
+  mediaUrl        String?
+  mediaType       String?
+  
+  // עיבוד AI
+  aiProcessed     Boolean  @default(false)
+  aiKavvanah      String?  // מה הלקוח רוצה
+  aiPerot         Json?    // פרטים ששולפו
+  aiPeula         String?  // פעולה שהופעלה
+  
+  // מעקב
+  statusMegira    String   @default("pending") // pending, sent, delivered, read, failed
+  
+  // מטאדאטה
+  metadata        Json?
+  
+  // זמנים
+  createdAt       DateTime @default(now())
+  sentAt          DateTime?
+  deliveredAt     DateTime?
+  readAt          DateTime?
+  
+  // קשר
+  shichah         PingShichah @relation(fields: [shichahId], references: [id], onDelete: Cascade)
+  
+  @@index([shichahId, createdAt])
+  @@index([aiProcessed])
+  @@map("ping_hodaot")
+}
+
+model PingSheelon {
+  id              String   @id @default(cuid())
+  organizationId  String   @db.Uuid
+  shichahId       String
+  
+  // הגדרת שאלון
+  sugSheelon      String   // lead_qualification | attendance_check | task_reminder | custom
+  trigger         String   // message_received | time_based | event_based
+  
+  // סטטוס
+  status          String   @default("active") // active, completed, failed, cancelled
+  adifut          String   @default("normal")
+  
+  // AI
+  aiPrompt        String?  @db.Text
+  aiModel         String   @default("gpt-4o-mini")
+  
+  // שלבים
+  shalahNochechi  Int      @default(0) // שלב נוכחי
+  kamahShlavim    Int      @default(0)
+  hagdratShlavim  Json     // הגדרת השאלות
+  
+  // מידע שנאסף
+  maasfu          Json?    // תשובות שהתקבלו
+  
+  // פעולות בסיום
+  peulotBesiyum   Json?    // create_lead, update_attendance, etc.
+  
+  // תוצאות
+  totsa           Json?    // תוצאת השאלון
+  hodaaToshe      String?
+  
+  // זמנים
+  startedAt       DateTime @default(now())
+  completedAt     DateTime?
+  createdAt       DateTime @default(now())
+  
+  // קשר
+  shichah         PingShichah @relation(fields: [shichahId], references: [id], onDelete: Cascade)
+  
+  @@index([organizationId, sugSheelon])
+  @@index([organizationId, status])
+  @@index([shichahId])
+  @@map("ping_sheelonim")
+}
+
+model PingTshuvahMukena {
+  id              String   @id @default(cuid())
+  organizationId  String   @db.Uuid
+  
+  // תבנית
+  shem            String
+  kategoria       String   // greeting, follow_up, reminder, qualification, closing
+  arutz           String   // whatsapp, sms, email
+  
+  // תוכן
+  subject         String?  // לאימייל
+  bodyHe          String   @db.Text
+  bodyEn          String?  @db.Text
+  
+  // משתנים
+  variables       String[] // {{name}}, {{business}}, etc.
+  
+  // AI
+  aiEnhance       Boolean  @default(false)
+  
+  // סטטוס
+  isActive        Boolean  @default(true)
+  isSystem        Boolean  @default(false)
+  
+  // שימוש
+  useCount        Int      @default(0)
+  lastUsedAt      DateTime?
+  
+  // זמנים
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now())
+  
+  @@index([organizationId, kategoria])
+  @@index([organizationId, arutz])
+  @@map("ping_tshuvot_mukenot")
+}
+
+model PingChibur {
+  id              String   @id @default(cuid())
+  organizationId  String   @db.Uuid
+  
+  // סוג חיבור
+  sapak           String   // whatsapp_business_api, twilio, voicenter, custom
+  
+  // אישורים (מוצפנים)
+  credentials     Json
+  
+  // הגדרות
+  config          Json
+  
+  // סטטוס
+  status          String   @default("pending") // pending, active, error, paused
+  lastError       String?
+  lastErrorAt     DateTime?
+  
+  // וובהוק
+  webhookUrl      String?
+  webhookSecret   String?
+  
+  // זמנים
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now())
+  
+  @@unique([organizationId, sapak])
+  @@map("ping_chiburim")
+}
