@@ -1,4 +1,4 @@
-/**
+/*
  * Dynamic Metadata Helper
  * 
  * Provides metadata and icons for different systems (Nexus, System, Scale)
@@ -156,10 +156,33 @@ export function getSystemMetadata(system: SystemType = 'misrad'): Metadata {
     title: config.title,
     description: config.description,
     manifest: config.manifest,
+    metadataBase: new URL('https://misrad-ai.com'),
     icons: {
       icon: iconUrl,
       apple: appleIconUrl,
       shortcut: iconUrl,
+    },
+    openGraph: {
+      title: config.title,
+      description: config.description,
+      url: 'https://misrad-ai.com',
+      siteName: 'MISRAD AI',
+      locale: 'he_IL',
+      type: 'website',
+      images: [
+        {
+          url: '/icons/admin-icon-192.png',
+          width: 192,
+          height: 192,
+          alt: 'MISRAD AI — מערכת AI שמנהלת את הארגון',
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary',
+      title: config.title,
+      description: config.description,
+      images: ['/icons/admin-icon-192.png'],
     },
     appleWebApp: {
       capable: true,
